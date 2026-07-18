@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MRL India · Service Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#E63946;
+  --red-dark:#C1121F;
+  --navy:#1D3557;
+  --navy-2:#142640;
+  --steel:#457B9D;
+  --teal:#A8DADC;
+  --paper:#F7F9FA;
+  --card:#FFFFFF;
+  --ink:#1B2733;
+  --ink-soft:#5B6B7A;
+  --line:#E3E8EC;
+  --ok:#2A9D8F;
+  --warn:#E9A23B;
+  --danger:#E63946;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(29,53,87,.06), 0 4px 14px rgba(29,53,87,.06);
+  --disp:'Oswald',sans-serif;
+  --body:'Public Sans',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+::selection{background:var(--teal);}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,select,textarea{font-family:inherit;font-size:14px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#c7d0d8;border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- APP SHELL ---------- */
+#app{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{
+  width:230px;flex:none;background:linear-gradient(180deg,var(--navy) 0%, var(--navy-2) 100%);
+  color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;
+}
+.brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand .mark{display:flex;align-items:center;gap:10px;}
+.brand .swatch{width:34px;height:34px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.5px;box-shadow:0 3px 10px rgba(230,57,70,.4);}
+.brand .name{font-family:var(--disp);font-weight:600;font-size:16.5px;letter-spacing:.3px;line-height:1.15;}
+.brand .sub{font-size:10.5px;color:var(--teal);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;font-weight:600;}
+.nav{flex:1;padding:14px 12px;overflow-y:auto;}
+.nav-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:14px 10px 6px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:rgba(255,255,255,.72);font-size:13.5px;font-weight:500;margin-bottom:2px;transition:background .15s,color .15s;}
+.nav-item svg{width:17px;height:17px;flex:none;opacity:.85;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:var(--red);color:#fff;box-shadow:0 3px 10px rgba(230,57,70,.35);}
+.nav-item .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;background:rgba(255,255,255,.14);padding:1px 6px;border-radius:20px;}
+.nav-item.active .count{background:rgba(255,255,255,.25);}
+.sidebar-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.4);}
+
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(247,249,250,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;gap:16px;}
+.topbar h1{font-family:var(--disp);font-size:20px;font-weight:600;color:var(--navy);letter-spacing:.2px;}
+.topbar .crumb{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+.topbar-actions{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.search-box{position:relative;}
+.search-box input{width:230px;padding:8px 12px 8px 32px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;}
+.search-box input:focus{outline:none;border-color:var(--steel);}
+.search-box svg{position:absolute;left:10px;top:9px;width:15px;height:15px;color:var(--ink-soft);}
+.content{padding:24px 28px 60px;flex:1;}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;transition:filter .15s, transform .1s;}
+.btn:active{transform:translateY(1px);}
+.btn svg{width:15px;height:15px;}
+.btn-primary{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(230,57,70,.3);}
+.btn-primary:hover{filter:brightness(1.06);}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:hover{filter:brightness(1.15);}
+.btn-ghost{background:#fff;color:var(--navy);border:1px solid var(--line);}
+.btn-ghost:hover{background:#f1f4f6;}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.btn-danger-outline{background:#fff;color:var(--red-dark);border:1px solid #f3c6ca;}
+.btn-danger-outline:hover{background:#fff5f5;}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card .bar{position:absolute;left:0;top:0;bottom:0;width:4px;}
+.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:700;}
+.stat-card .value{font-family:var(--disp);font-size:30px;font-weight:600;color:var(--navy);margin-top:6px;}
+.stat-card .delta{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+
+/* Panels */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;}
+.panel-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;}
+.panel-head h2{font-family:var(--disp);font-size:15.5px;font-weight:600;color:var(--navy);}
+.panel-head .hint{font-size:12px;color:var(--ink-soft);}
+.panel-body{padding:18px 20px;}
+.panel-head-actions{margin-left:auto;display:flex;gap:8px;}
+
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+
+/* Tables */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft);padding:10px 12px;border-bottom:2px solid var(--line);font-weight:700;white-space:nowrap;}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+tbody tr:hover{background:#fafcfd;}
+.id-mono{font-family:var(--mono);font-size:12px;color:var(--navy);font-weight:600;}
+.muted{color:var(--ink-soft);}
+.empty-row td{text-align:center;padding:40px;color:var(--ink-soft);}
+
+/* Badges / status stamps */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.badge.st-pending{background:#FDF0DE;color:#B5730B;}
+.badge.st-assigned{background:#E7EEF5;color:var(--steel);}
+.badge.st-progress{background:#FDE9DD;color:#C1560D;}
+.badge.st-completed{background:#E1F3EF;color:var(--ok);}
+.badge.st-cancelled{background:#FBE4E5;color:var(--red-dark);}
+.badge.st-out{background:#E9EEF4;color:var(--navy);}
+.badge.pr-high{background:#FBE4E5;color:var(--red-dark);}
+.badge.pr-normal{background:#EEF1F3;color:var(--ink-soft);}
+.badge.pr-low{background:#EAF6F1;color:var(--ok);}
+.type-tag{display:inline-flex;padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.type-tag.install{background:var(--teal);color:var(--navy);}
+.type-tag.service{background:#FBE4E5;color:var(--red-dark);}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:11.5px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;}
+.field label .req{color:var(--red);}
+.field input,.field select,.field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:#fbfcfd;color:var(--ink);}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--steel);background:#fff;box-shadow:0 0 0 3px rgba(69,123,157,.12);}
+.field textarea{resize:vertical;min-height:64px;}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,38,64,.55);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:40px 20px;overflow-y:auto;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:640px;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:modalIn .18s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;}
+.modal-head h3{font-family:var(--disp);font-size:17px;color:var(--navy);font-weight:600;}
+.modal-head button{margin-left:auto;width:30px;height:30px;border-radius:8px;color:var(--ink-soft);font-size:18px;}
+.modal-head button:hover{background:#f1f4f6;}
+.modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+.tab-btn{padding:10px 16px;font-size:13px;font-weight:600;color:var(--ink-soft);border-bottom:2px solid transparent;}
+.tab-btn.active{color:var(--red);border-color:var(--red);}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy);color:#fff;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;align-items:center;gap:10px;animation:toastIn .2s ease;}
+.toast.ok{background:var(--ok);}
+.toast.err{background:var(--red-dark);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Ticket / job card - signature element */
+.ticket{
+  background:#fff;border:1px solid var(--line);border-radius:12px;position:relative;
+  padding:22px 24px;font-family:var(--body);box-shadow:var(--shadow);
+}
+.ticket::before,.ticket::after{content:'';position:absolute;width:22px;height:22px;background:var(--paper);border-radius:50%;top:50%;transform:translateY(-50%);}
+.ticket::before{left:-11px;}
+.ticket::after{right:-11px;}
+.ticket .tear{border-top:2px dashed var(--line);margin:16px 0;}
+.ticket-head{display:flex;justify-content:space-between;align-items:flex-start;}
+.ticket-id{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--navy);letter-spacing:1px;}
+.ticket-brand{font-family:var(--disp);font-size:11px;color:var(--red);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.stamp{
+  font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  border:2.5px solid currentColor;border-radius:6px;padding:5px 12px;transform:rotate(-6deg);display:inline-block;
+  opacity:.9;
+}
+.stamp.pending{color:var(--warn);}
+.stamp.progress{color:var(--red);}
+.stamp.completed{color:var(--ok);}
+.stamp.cancelled{color:var(--ink-soft);}
+.ticket-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-top:14px;font-size:13px;}
+.ticket-grid .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:700;}
+.ticket-grid .v{color:var(--ink);margin-top:1px;}
+
+/* ---------- PENDING CALL ALERT ---------- */
+.alert-banner{display:flex;align-items:flex-start;gap:12px;background:#FDF0DE;border:1px solid #F0D3A0;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.alert-banner.danger{background:#FBE4E5;border-color:#F3B7BB;}
+.alert-banner .ic{width:34px;height:34px;flex:none;border-radius:9px;background:var(--warn);color:#fff;display:flex;align-items:center;justify-content:center;}
+.alert-banner.danger .ic{background:var(--red-dark);}
+.alert-banner .ic svg{width:18px;height:18px;}
+.alert-banner .body{flex:1;}
+.alert-banner .title{font-weight:700;font-size:13.5px;color:var(--navy);margin-bottom:2px;}
+.alert-banner .desc{font-size:12.5px;color:var(--ink-soft);}
+.alert-banner .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.alert-chip{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 4px;font-size:11.5px;cursor:pointer;transition:box-shadow .12s;}
+.alert-chip:hover{box-shadow:0 2px 6px rgba(29,53,87,.12);}
+.alert-chip .days{background:var(--red-dark);color:#fff;font-weight:700;border-radius:12px;padding:2px 7px;font-size:10.5px;}
+.alert-chip.ok .days{background:var(--warn);}
+.nav-item .count.alert-count{background:var(--red-dark);color:#fff;border-radius:20px;padding:1px 7px;animation:pulseDot 1.6s ease-in-out infinite;}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ---------- PHOTO UPLOAD (CLOSE CALL) ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
+.photo-slot{position:relative;aspect-ratio:1/1;border:1.5px dashed var(--line);border-radius:9px;background:#fbfcfd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;overflow:hidden;text-align:center;padding:4px;}
+.photo-slot:hover{border-color:var(--steel);}
+.photo-slot.filled{border-style:solid;border-color:var(--ok);padding:0;}
+.photo-slot img{width:100%;height:100%;object-fit:cover;}
+.photo-slot .lbl{font-size:10px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.photo-slot .rm{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(20,38,64,.75);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:2;}
+.ticket-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+.ticket-photos img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer;}
+
+/* Empty state */
+.empty-state{padding:50px 20px;text-align:center;color:var(--ink-soft);}
+.empty-state svg{width:44px;height:44px;color:var(--line);margin-bottom:10px;}
+.empty-state .t{font-family:var(--disp);font-size:15px;color:var(--navy);font-weight:600;}
+.empty-state .d{font-size:12.5px;margin-top:4px;}
+
+/* Filters row */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+.filters select,.filters input{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12.5px;}
+.filters .spacer{flex:1;}
+.pill-toggle{display:flex;background:#eef1f3;border-radius:8px;padding:3px;gap:2px;}
+.pill-toggle button{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;color:var(--ink-soft);}
+.pill-toggle button.active{background:#fff;color:var(--navy);box-shadow:var(--shadow);}
+
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--steel);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex:none;}
+.tech-row{display:flex;align-items:center;gap:8px;}
+
+.chart-wrap{position:relative;height:230px;}
+.link-btn{color:var(--steel);font-weight:600;font-size:12.5px;}
+.link-btn:hover{text-decoration:underline;}
+.icon-btn{width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-soft);}
+.icon-btn:hover{background:#f1f4f6;color:var(--navy);}
+.icon-btn svg{width:15px;height:15px;}
+
+@media print{
+  .sidebar,.topbar,.no-print{display:none!important;}
+  .content{padding:0;}
+  body{background:#fff;}
+}
+
+/* ---------- LOGIN GATE ---------- */
+#loginGate{position:fixed;inset:0;background:linear-gradient(160deg,var(--navy) 0%, var(--navy-2) 100%);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;}
+#loginGate.hidden{display:none;}
+.login-card{background:#fff;border-radius:16px;padding:34px 32px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.35);}
+.login-card .swatch{width:42px;height:42px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:20px;color:#fff;margin-bottom:14px;box-shadow:0 4px 12px rgba(230,57,70,.4);}
+.login-card h2{font-family:var(--disp);font-size:19px;color:var(--navy);font-weight:600;}
+.login-card .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;margin-bottom:20px;}
+.login-card .field{margin-bottom:14px;}
+.login-card .err{font-size:12px;color:var(--red-dark);font-weight:600;margin-top:8px;min-height:14px;}
+#loginGate .foot-note{font-size:11px;color:rgba(255,255,255,.55);text-align:center;margin-top:16px;}
+
+/* ---------- SYNC STATUS / CENTER BADGE ---------- */
+.sync-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.3px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);}
+.sync-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none;}
+.sync-pill.offline .dot{background:var(--warn);animation:pulseDot 1.2s ease-in-out infinite;}
+.center-badge{display:flex;align-items:center;gap:8px;background:#EEF1F3;border-radius:20px;padding:5px 8px 5px 12px;font-size:12.5px;font-weight:600;color:var(--navy);}
+.center-badge button{color:var(--ink-soft);font-size:11px;font-weight:700;padding:4px 9px;border-radius:14px;background:#fff;}
+.center-badge button:hover{color:var(--red-dark);}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div id="loginGate">
+  <div class="login-card">
+    <div class="swatch">M</div>
+    <h2>MRL India Service Desk</h2>
+    <div class="sub">Select your service center to continue</div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="field"><label>Service Center</label>
+        <select name="center" id="centerSelect"></select>
+      </div>
+      <div class="field"><label>Password</label>
+        <input type="password" name="password" id="centerPassword" placeholder="Center password" autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Enter</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">
+        <div class="swatch">M</div>
+        <div>
+          <div class="name">MRL India</div>
+          <div class="sub">Service Desk</div>
+        </div>
+      </div>
+    </div>
+    <nav class="nav" id="navList"></nav>
+    <div class="sidebar-foot">v1.1 · Synced across 10 centers</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="crumb" id="pageCrumb">Overview of today's service operations</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncPillText">Synced</span></div>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="globalSearch" placeholder="Search name, phone, ID..." oninput="onGlobalSearch(this.value)">
+        </div>
+        <button class="btn btn-primary" onclick="openQuickAdd()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+          New
+        </button>
+        <div class="center-badge"><span id="centerBadgeName">—</span><button onclick="handleLogout()">Switch</button></div>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+/* =========================================================
+   MRL INDIA — SERVICE DESK CRM
+   Vanilla JS + Firebase Firestore (realtime, shared across centers).
+========================================================= */
+
+/* ---------- 1. FIREBASE SETUP ----------
+   Create a free project at https://console.firebase.google.com,
+   enable "Firestore Database", then paste your web app config below.
+   Every center's copy of this file must use the SAME config so they
+   all read/write the same cloud database. */
+const firebaseConfig = {
+  apiKey: "AIzaSyDe8eFIobZCUeX489tWM1ZyQiA-Cv3g8cQ",
+  authDomain: "mrl-india-crm.firebaseapp.com",
+  projectId: "mrl-india-crm",
+  storageBucket: "mrl-india-crm.firebasestorage.app",
+  messagingSenderId: "241347652766",
+  appId: "1:241347652766:web:176c30a8089a9d79af5f8f"
+};
+const FIRESTORE_DOC = { collection: 'mrl_crm', doc: 'shared_data' }; // one shared document = one CRM database
+let fsDoc = null;          // firestore document reference
+let cloudReady = false;    // becomes true once firebase initializes successfully
+let suppressNextSnapshot = false;
+
+try{
+  if(firebaseConfig.apiKey!=='PASTE_YOUR_API_KEY' && typeof firebase!=='undefined'){
+    firebase.initializeApp(firebaseConfig);
+    fsDoc = firebase.firestore().collection(FIRESTORE_DOC.collection).doc(FIRESTORE_DOC.doc);
+    cloudReady = true;
+  }
+}catch(e){ console.warn('Firebase init failed, falling back to local-only storage.', e); cloudReady = false; }
+
+/* ---------- 2. SERVICE CENTERS (login) ----------
+   Edit names + passwords here. Same list should be identical
+   in the copy of this file given to every center. */
+const CENTERS = [
+  {id:'center01', name:'Service Center 01', password:'mrl01'},
+  {id:'center02', name:'Service Center 02', password:'mrl02'},
+  {id:'center03', name:'Service Center 03', password:'mrl03'},
+  {id:'center04', name:'Service Center 04', password:'mrl04'},
+  {id:'center05', name:'Service Center 05', password:'mrl05'},
+  {id:'center06', name:'Service Center 06', password:'mrl06'},
+  {id:'center07', name:'Service Center 07', password:'mrl07'},
+  {id:'center08', name:'Service Center 08', password:'mrl08'},
+  {id:'center09', name:'Service Center 09', password:'mrl09'},
+  {id:'center10', name:'Service Center 10', password:'mrl10'},
+  {id:'hq', name:'HQ / Admin', password:'mrlhq'},
+];
+let currentCenter = null;
+
+function populateCenterSelect(){
+  const sel = document.getElementById('centerSelect');
+  sel.innerHTML = CENTERS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+function handleLogin(e){
+  e.preventDefault();
+  const f = e.target;
+  const c = CENTERS.find(x=>x.id===f.center.value);
+  const errEl = document.getElementById('loginErr');
+  if(!c || f.password.value !== c.password){ errEl.textContent = 'Incorrect password for this center.'; return; }
+  errEl.textContent = '';
+  currentCenter = c;
+  sessionStorage.setItem('mrl_center_id', c.id);
+  bootApp();
+}
+function handleLogout(){
+  sessionStorage.removeItem('mrl_center_id');
+  location.reload();
+}
+
+const STORE_KEY = 'mrl_crm_data_v1';
+const TECH_ROSTER = ['Omkar','Kumar','Riyaz','Gopal','Shashi','Amit','Manu','Sakthi','Anjaneya','Vikas'];
+const BRANDS = ['MRL India','PHILIRAY','Punarvika'];
+const TV_MODELS = ['24" LED','32" LED','32" Smart','40" Smart','43" Smart','43" 4K','50" 4K','55" 4K Smart','55" QLED','65" 4K Smart','65" QLED','75" 4K Smart','DRONA 32','DRONA 43','DRONA 55','DRONA 65'];
+const SPEAKER_MODELS = ['SPECTRA','VIBEVERSE','PIXEL BEAT','HD-108','T-6666','FLAME','HARMONY X','FUSION MIX','RHYTHMRISE','MINI','MAX','VG500'];
+const AREAS = ['Kumarapark','Rajajinagar','Malleshwaram','Yeshwanthpur','Vijayanagar','Basavanagudi','Jayanagar','Whitefield','HSR Layout','Other'];
+
+function uid(prefix){
+  const d = new Date();
+  const ds = d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  const seq = String((db.seq[prefix] = (db.seq[prefix]||0)+1)).padStart(3,'0');
+  const rnd = Math.random().toString(36).slice(2,4).toUpperCase(); // avoids ID clashes when two centers save at the same instant
+  return `${prefix}-${ds}-${seq}${rnd}`;
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(s){ if(!s) return '—'; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){ return (name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
+
+/* =========================================================
+   DATA LAYER — shared Firestore document (realtime across
+   all 10 centers) with an automatic localStorage fallback if
+   Firebase hasn't been configured yet, or the device is offline.
+========================================================= */
+let db = defaultDB();
+function defaultDB(){
+  return {
+    seq:{},
+    customers: [],
+    calls: [],       // installation & service calls
+    inward: [],       // TV inward/outward register
+    jobcards: [],
+    technicians: TECH_ROSTER.map(n=>({name:n, status:'Available'})),
+  };
+}
+function seedDB(){
+  const d = defaultDB();
+  const c1 = {id: 'CUST-SEED-001', name:'Ramesh Kumar B', phone:'9880012345', address:'12, 4th Cross, Kumarapark West', area:'Kumarapark', brand:'MRL India', createdAt: todayStr()};
+  const c2 = {id: 'CUST-SEED-002', name:'Lakshmi Devi', phone:'9945567890', address:'45, Sampige Road', area:'Malleshwaram', brand:'PHILIRAY', createdAt: todayStr()};
+  d.customers.push(c1, c2);
+  d.seq['CALL']=2; d.seq['INW']=1;
+  d.calls.push(
+    {id:'CALL-'+todayStr().replace(/-/g,'')+'-001', date:todayStr(), type:'Service', customerId:c1.id, customerName:c1.name, phone:c1.phone, address:c1.address, area:c1.area, brand:c1.brand, product:'TV', model:'55" 4K Smart', serial:'MRL55Q-88213', issue:'No display, power light blinking', technician:'Kumar', priority:'High', status:'Assigned', notes:'', photoCount:0, closedAt:'', centerTag:''},
+    {id:'CALL-'+todayStr().replace(/-/g,'')+'-002', date:todayStr(), type:'Installation', customerId:c2.id, customerName:c2.name, phone:c2.phone, address:c2.address, area:c2.area, brand:c2.brand, product:'TV', model:'43" Smart', serial:'', issue:'New unit installation + wall mount', technician:'Riyaz', priority:'Normal', status:'Pending', notes:'Customer prefers evening slot', photoCount:0, closedAt:'', centerTag:''}
+  );
+  d.inward.push(
+    {id:'INW-'+todayStr().replace(/-/g,'')+'-001', dateIn:todayStr(), customerId:c1.id, customerName:c1.name, phone:c1.phone, product:'TV', model:'55" 4K Smart', serial:'MRL55Q-88213', issue:'No display, power light blinking', conditionIn:'Panel intact, minor scratch on back cover', technician:'Kumar', status:'In Progress', dateOut:'', conditionOut:'', deliveredBy:'', notes:''}
+  );
+  return d;
+}
+
+/* ----- local (offline) fallback ----- */
+function loadLocalDB(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return seedDB();
+    return Object.assign(defaultDB(), JSON.parse(raw));
+  }catch(e){ return seedDB(); }
+}
+function saveLocalDB(){ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+
+/* ----- cloud (Firestore) sync ----- */
+function updateSyncPill(state, label){
+  const pill = document.getElementById('syncPill'); const txt = document.getElementById('syncPillText');
+  if(!pill) return;
+  pill.classList.toggle('offline', state!=='online');
+  txt.textContent = label || (state==='online' ? 'Synced — all centers' : 'Local only');
+}
+function startCloudSync(){
+  fsDoc.onSnapshot(snap=>{
+    if(!snap.exists){
+      const seeded = seedDB();
+      fsDoc.set(seeded).catch(e=>console.warn('seed write failed', e));
+      db = seeded; render(); updateSyncPill('online'); return;
+    }
+    db = Object.assign(defaultDB(), snap.data());
+    render();
+    updateSyncPill(snap.metadata.fromCache ? 'offline' : 'online', snap.metadata.fromCache ? 'Reconnecting…' : 'Synced — all centers');
+  }, err=>{
+    console.warn('Firestore sync error, switching to local-only mode.', err);
+    cloudReady = false; db = loadLocalDB(); render(); updateSyncPill('offline','Local only (sync error)');
+  });
+}
+function saveDB(){
+  if(cloudReady && fsDoc){
+    fsDoc.set(db).catch(e=>{ console.warn('Cloud save failed, cached locally instead.', e); saveLocalDB(); toast('Could not sync to cloud — saved on this device only','err'); });
+    saveLocalDB(); // keep an offline cache too
+  } else {
+    saveLocalDB();
+  }
+}
+
+/* ----- photos: stored in their own Firestore doc per call so the
+   shared data document stays small and fast to sync ----- */
+function savePhotosForCall(callId, photos){
+  if(cloudReady){
+    return firebase.firestore().collection('mrl_photos').doc(callId).set({photos, updatedAt: Date.now()});
+  }
+  return Promise.resolve();
+}
+function loadPhotosForCall(r){
+  if(!r.photoCount) return Promise.resolve([]);
+  if(cloudReady){
+    return firebase.firestore().collection('mrl_photos').doc(r.id).get().then(d=> d.exists ? (d.data().photos||[]) : []);
+  }
+  return Promise.resolve(r.photos||[]);
+}
+/* compress a photo file client-side before it's stored/synced */
+function compressImage(file, maxDim=800, quality=0.62){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      img.onload = ()=>{
+        let w=img.width, h=img.height;
+        if(w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; }
+        else if(h>=w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ----- boot sequence, runs right after login ----- */
+function bootApp(){
+  document.getElementById('loginGate').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('centerBadgeName').textContent = currentCenter.name;
+  if(cloudReady){ updateSyncPill('offline','Connecting…'); startCloudSync(); }
+  else { db = loadLocalDB(); render(); updateSyncPill('offline','Local only — add Firebase config to sync'); }
+}
+(function tryAutoLogin(){
+  const savedId = sessionStorage.getItem('mrl_center_id');
+  const c = CENTERS.find(x=>x.id===savedId);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    populateCenterSelect();
+    if(c){ currentCenter = c; bootApp(); }
+  });
+})();
+
+function findCustomerByPhone(phone){ return db.customers.find(c=>c.phone===phone); }
+function upsertCustomer({name, phone, address, area, brand}){
+  let c = findCustomerByPhone(phone);
+  if(c){
+    c.name=name||c.name; c.address=address||c.address; c.area=area||c.area; c.brand=brand||c.brand;
+  } else {
+    c = {id:'CUST-'+Date.now().toString().slice(-8), name, phone, address, area, brand, createdAt: todayStr()};
+    db.customers.push(c);
+  }
+  return c;
+}
+
+/* ---------- NAV / ROUTES ---------- */
+const ROUTES = [
+  {group:'Overview', items:[
+    {key:'dashboard', label:'Dashboard', icon:'grid'},
+  ]},
+  {group:'Operations', items:[
+    {key:'calls', label:'Call Registration', icon:'phone'},
+    {key:'inward', label:'TV Inward / Outward', icon:'swap'},
+    {key:'jobcards', label:'Job Cards', icon:'ticket'},
+  ]},
+  {group:'Records', items:[
+    {key:'customers', label:'Customers', icon:'user'},
+    {key:'technicians', label:'Technicians', icon:'wrench'},
+  ]},
+];
+const ICONS = {
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  swap:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  ticket:'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/>',
+  wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-3 3-2-2 3-3z"/>',
+};
+function iconSvg(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`; }
+
+let currentRoute = 'dashboard';
+let searchTerm = '';
+
+function renderNav(){
+  const el = document.getElementById('navList');
+  el.innerHTML = ROUTES.map(g => `
+    <div class="nav-group-label">${g.group}</div>
+    ${g.items.map(it => `
+      <a class="nav-item ${currentRoute===it.key?'active':''}" onclick="navigate('${it.key}')">
+        ${iconSvg(it.icon)}<span>${it.label}</span>
+        <span class="count ${it.key==='calls'&&overdueCount()>0?'alert-count':''}">${it.key==='calls'&&overdueCount()>0?overdueCount():navCount(it.key)}</span>
+      </a>
+    `).join('')}
+  `).join('');
+}
+function overdueCount(){ return db.calls.filter(c=>(c.status==='Pending'||c.status==='Assigned') && daysSince(c.date)>=1).length; }
+function navCount(key){
+  if(key==='calls') return db.calls.filter(c=>c.status!=='Completed'&&c.status!=='Cancelled').length;
+  if(key==='inward') return db.inward.filter(i=>i.status!=='Delivered').length;
+  if(key==='jobcards') return db.jobcards.length;
+  if(key==='customers') return db.customers.length;
+  if(key==='technicians') return db.technicians.length;
+  return '';
+}
+function navigate(key){
+  currentRoute = key; searchTerm='';
+  const s=document.getElementById('globalSearch'); if(s) s.value='';
+  render();
+}
+
+/* ---------- TOAST ---------- */
+function toast(msg, type=''){
+  const wrap = document.getElementById('toast');
+  const t = document.createElement('div');
+  t.className = 'toast '+type;
+  t.innerHTML = `<span>${msg}</span>`;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+/* ---------- MODAL ---------- */
+function openModal(title, bodyHtml, wide=false){
+  document.getElementById('modalBox').style.maxWidth = wide? '780px':'640px';
+  document.getElementById('modalBox').innerHTML = `
+    <div class="modal-head"><h3>${title}</h3><button onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">${bodyHtml}</div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+/* ---------- FORM DRAFT AUTOSAVE ----------
+   Saves in-progress form entries to this device as the user types,
+   so nothing is lost if the tab closes or the app crashes mid-entry.
+   Cleared automatically once the record is successfully saved. */
+let autosaveTimers = {};
+function attachAutosave(formId, draftKey){
+  const form = document.getElementById(formId);
+  if(!form) return;
+  try{
+    const raw = localStorage.getItem(draftKey);
+    if(raw){
+      const data = JSON.parse(raw);
+      let restoredAny = false;
+      Object.keys(data).forEach(name=>{
+        const el = form.elements[name];
+        if(el && data[name]){ el.value = data[name]; restoredAny = true; }
+      });
+      if(restoredAny) toast('Unsaved draft restored', 'ok');
+    }
+  }catch(e){}
+  form.addEventListener('input', ()=>{
+    clearTimeout(autosaveTimers[draftKey]);
+    autosaveTimers[draftKey] = setTimeout(()=>{
+      const data = {};
+      [...form.elements].forEach(el=>{ if(el.name) data[el.name] = el.value; });
+      localStorage.setItem(draftKey, JSON.stringify(data));
+    }, 500);
+  });
+}
+function clearDraft(draftKey){ localStorage.removeItem(draftKey); }
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+/* ---------- QUICK ADD ---------- */
+function openQuickAdd(){
+  openModal('What would you like to create?', `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;" onclick="closeModal();openCallForm('Installation')">
+        ${iconSvg('phone')}&nbsp; Register Installation Call
+      </button>
+      <button class="btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;" onclick="closeModal();openCallForm('Service')">
+        ${iconSvg('phone')}&nbsp; Register Service Call
+      </button>
+      <button class="btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;" onclick="closeModal();openInwardForm()">
+        ${iconSvg('swap')}&nbsp; Log TV Inward
+      </button>
+      <button class="btn btn-ghost" style="justify-content:flex-start;padding:14px 16px;" onclick="closeModal();openCustomerForm()">
+        ${iconSvg('user')}&nbsp; Add Customer
+      </button>
+    </div>
+  `);
+}
+
+/* ---------- GLOBAL SEARCH ---------- */
+function onGlobalSearch(v){ searchTerm = v.trim().toLowerCase(); render(); }
+function matchesSearch(text){ return !searchTerm || (text||'').toLowerCase().includes(searchTerm); }
+
+/* =========================================================
+   RENDER ROUTER
+========================================================= */
+function render(){
+  renderNav();
+  const titleMap = {dashboard:['Dashboard','Overview of today\'s service operations'],
+    calls:['Call Registration','Installation & service call log'],
+    inward:['TV Inward / Outward','Customer TV movement register'],
+    jobcards:['Job Cards','Printable service tickets'],
+    customers:['Customers','Customer master database'],
+    technicians:['Technicians','Roster & workload']};
+  document.getElementById('pageTitle').textContent = titleMap[currentRoute][0];
+  document.getElementById('pageCrumb').textContent = titleMap[currentRoute][1];
+  const c = document.getElementById('content');
+  if(currentRoute==='dashboard') c.innerHTML = renderDashboard();
+  else if(currentRoute==='calls') c.innerHTML = renderCalls();
+  else if(currentRoute==='inward') c.innerHTML = renderInward();
+  else if(currentRoute==='jobcards') c.innerHTML = renderJobCards();
+  else if(currentRoute==='customers') c.innerHTML = renderCustomers();
+  else if(currentRoute==='technicians') c.innerHTML = renderTechnicians();
+  if(currentRoute==='dashboard') drawCharts();
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+function renderDashboard(){
+  const today = todayStr();
+  const callsToday = db.calls.filter(c=>c.date===today).length;
+  const pending = db.calls.filter(c=>c.status==='Pending').length;
+  const inProgress = db.calls.filter(c=>c.status==='In Progress' || c.status==='Assigned').length;
+  const completed = db.calls.filter(c=>c.status==='Completed').length;
+  const tvsIn = db.inward.filter(i=>i.status!=='Delivered').length;
+  const totalCustomers = db.customers.length;
+
+  const recent = [...db.calls].sort((a,b)=> (b.date+b.id).localeCompare(a.date+a.id)).slice(0,6);
+
+  return `
+  ${pendingAlertBanner()}
+  <div class="stat-grid">
+    ${statCard('Calls Today', callsToday, 'var(--steel)', 'Installation + Service')}
+    ${statCard('Pending', pending, 'var(--warn)', 'Awaiting technician assignment')}
+    ${statCard('In Progress', inProgress, 'var(--red)', 'Assigned or being worked on')}
+    ${statCard('Completed', completed, 'var(--ok)', 'All time')}
+    ${statCard('TVs at Center', tvsIn, 'var(--navy)', 'Inward, not yet delivered')}
+    ${statCard('Customers', totalCustomers, 'var(--steel)', 'In database')}
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Recent Call Activity</h2>
+        <div class="panel-head-actions"><a class="link-btn" onclick="navigate('calls')">View all →</a></div>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Call ID</th><th>Type</th><th>Customer</th><th>Product</th><th>Technician</th><th>Status</th></tr></thead>
+            <tbody>
+              ${recent.length? recent.map(r=>`
+                <tr>
+                  <td class="id-mono">${r.id}</td>
+                  <td><span class="type-tag ${r.type==='Installation'?'install':'service'}">${r.type}</span></td>
+                  <td>${esc(r.customerName)}</td>
+                  <td>${esc(r.product)} · ${esc(r.model)}</td>
+                  <td><span class="tech-row"><span class="avatar">${initials(r.technician)}</span>${esc(r.technician||'Unassigned')}</span></td>
+                  <td>${statusBadge(r.status)}</td>
+                </tr>`).join('') : `<tr class="empty-row"><td colspan="6">No calls logged yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Call Type Split</h2></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chartType"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head"><h2>Status Breakdown</h2></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chartStatus"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Technician Load</h2></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chartTech"></canvas></div></div>
+    </div>
+  </div>
+  `;
+}
+function statCard(label, value, color, delta){
+  return `<div class="stat-card"><div class="bar" style="background:${color}"></div>
+    <div class="label">${label}</div><div class="value">${value}</div><div class="delta">${delta}</div></div>`;
+}
+function statusBadge(status){
+  const map = {'Pending':'st-pending','Assigned':'st-assigned','In Progress':'st-progress','Completed':'st-completed','Cancelled':'st-cancelled','Delivered':'st-completed','Ready':'st-completed'};
+  return `<span class="badge ${map[status]||'st-pending'}">${status}</span>`;
+}
+function priorityBadge(p){
+  const map={'High':'pr-high','Normal':'pr-normal','Low':'pr-low'};
+  return `<span class="badge ${map[p]||'pr-normal'}" style="background:none;">${p}</span>`;
+}
+
+let chartRefs = {};
+function drawCharts(){
+  if(typeof Chart === 'undefined') return;
+  Object.values(chartRefs).forEach(ch=>ch && ch.destroy());
+  const install = db.calls.filter(c=>c.type==='Installation').length;
+  const service = db.calls.filter(c=>c.type==='Service').length;
+  const ctx1 = document.getElementById('chartType');
+  if(ctx1) chartRefs.type = new Chart(ctx1, {type:'doughnut', data:{labels:['Installation','Service'], datasets:[{data:[install,service], backgroundColor:['#A8DADC','#E63946'], borderWidth:0}]}, options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}}, cutout:'65%'}});
+
+  const statuses = ['Pending','Assigned','In Progress','Completed','Cancelled'];
+  const counts = statuses.map(s=>db.calls.filter(c=>c.status===s).length);
+  const ctx2 = document.getElementById('chartStatus');
+  if(ctx2) chartRefs.status = new Chart(ctx2, {type:'bar', data:{labels:statuses, datasets:[{data:counts, backgroundColor:['#E9A23B','#457B9D','#E63946','#2A9D8F','#94A3AF'], borderRadius:6}]}, options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}}});
+
+  const techData = TECH_ROSTER.map(t=>db.calls.filter(c=>c.technician===t && c.status!=='Completed' && c.status!=='Cancelled').length);
+  const ctx3 = document.getElementById('chartTech');
+  if(ctx3) chartRefs.tech = new Chart(ctx3, {type:'bar', data:{labels:TECH_ROSTER, datasets:[{data:techData, backgroundColor:'#1D3557', borderRadius:6}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+}
+
+/* =========================================================
+   CALL REGISTRATION
+========================================================= */
+let callFilter = {type:'All', status:'All'};
+function renderCalls(){
+  let rows = db.calls.filter(c=>
+    (callFilter.type==='All'||c.type===callFilter.type) &&
+    (callFilter.status==='All'||c.status===callFilter.status) &&
+    (matchesSearch(c.customerName)||matchesSearch(c.phone)||matchesSearch(c.id))
+  ).sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id));
+
+  return `
+  ${pendingAlertBanner()}
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Call Register</h2>
+      <div class="hint">${rows.length} of ${db.calls.length} calls</div>
+      <div class="panel-head-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV('calls')">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openCallForm('Installation')">+ Installation Call</button>
+        <button class="btn btn-navy btn-sm" onclick="openCallForm('Service')">+ Service Call</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="filters">
+        <div class="pill-toggle">
+          ${['All','Installation','Service'].map(t=>`<button class="${callFilter.type===t?'active':''}" onclick="callFilter.type='${t}';render()">${t}</button>`).join('')}
+        </div>
+        <select onchange="callFilter.status=this.value;render()">
+          ${['All','Pending','Assigned','In Progress','Completed','Cancelled'].map(s=>`<option value="${s}" ${callFilter.status===s?'selected':''}>${s==='All'?'All statuses':s}</option>`).join('')}
+        </select>
+        <div class="spacer"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Call ID</th><th>Date</th><th>Type</th><th>Customer</th><th>Phone</th><th>Product</th><th>Serial No.</th><th>Technician</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${rows.length? rows.map(r=>`
+              <tr>
+                <td class="id-mono">${r.id}</td>
+                <td>${fmtDate(r.date)}</td>
+                <td><span class="type-tag ${r.type==='Installation'?'install':'service'}">${r.type}</span></td>
+                <td>${esc(r.customerName)}</td>
+                <td class="muted">${esc(r.phone)}</td>
+                <td>${esc(r.product)} · ${esc(r.model)}</td>
+                <td class="muted">${esc(r.serial)||'—'}</td>
+                <td><span class="tech-row"><span class="avatar">${initials(r.technician)}</span>${esc(r.technician||'—')}</span></td>
+                <td>${priorityBadge(r.priority)}</td>
+                <td>${statusBadge(r.status)}</td>
+                <td><button class="icon-btn" title="Open" onclick="viewCall('${r.id}')">${iconSvg('ticket')}</button></td>
+              </tr>`).join('') : `<tr class="empty-row"><td colspan="11">No matching calls. Try adjusting filters or register a new call.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function customerDatalist(){
+  return db.customers.map(c=>`<option data-id="${c.id}" data-phone="${c.phone}" data-address="${esc(c.address)}" data-area="${c.area}" data-brand="${c.brand}" value="${esc(c.name)}"></option>`).join('');
+}
+
+function openCallForm(type){
+  openModal(`Register ${type} Call`, `
+    <form id="callForm" onsubmit="submitCall(event,'${type}')">
+      <div class="hint" style="margin-bottom:10px;">Auto-saving as you type — safe if the app closes unexpectedly.</div>
+      <div class="form-grid">
+        <div class="field"><label>Customer Name <span class="req">*</span></label>
+          <input list="custList" name="customerName" required autocomplete="off" oninput="fillFromCustomer(this)"><datalist id="custList">${customerDatalist()}</datalist>
+        </div>
+        <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile"></div>
+        <div class="field full"><label>Address</label><input name="address"></div>
+        <div class="field"><label>Area / Territory</label><select name="area">${AREAS.map(a=>`<option>${a}</option>`).join('')}</select></div>
+        <div class="field"><label>Brand</label><select name="brand">${BRANDS.map(b=>`<option>${b}</option>`).join('')}</select></div>
+        <div class="field"><label>Product</label><select name="product" onchange="toggleModelList(this)"><option>TV</option><option>Speaker</option></select></div>
+        <div class="field"><label>Model</label><select name="model" id="modelSelect">${TV_MODELS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+        <div class="field"><label>Serial No.</label><input name="serial" placeholder="e.g. MRL55Q-88213"></div>
+        <div class="field full"><label>${type==='Service'?'Issue Description':'Installation Notes'} ${type==='Service'?'<span class="req">*</span>':''}</label>
+          <textarea name="issue" ${type==='Service'?'required':''} placeholder="${type==='Service'?'Describe the fault reported by customer':'e.g. New unit, wall-mount required, demo needed'}"></textarea>
+        </div>
+        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Priority</label><select name="priority"><option>Normal</option><option>High</option><option>Low</option></select></div>
+        <div class="field"><label>Call Date</label><input type="date" name="date" value="${todayStr()}"></div>
+        <div class="field"><label>Status</label><select name="status"><option>Pending</option><option>Assigned</option><option>In Progress</option><option>Completed</option></select></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Call</button>
+      </div>
+    </form>
+  `, true);
+  attachAutosave('callForm', 'mrl_draft_callForm');
+}
+function toggleModelList(sel){
+  const modelSelect = document.getElementById('modelSelect');
+  const list = sel.value==='TV'? TV_MODELS : SPEAKER_MODELS;
+  modelSelect.innerHTML = list.map(m=>`<option>${m}</option>`).join('');
+}
+function fillFromCustomer(input){
+  const list = document.getElementById('custList');
+  const opt = [...list.options].find(o=>o.value===input.value);
+  if(!opt) return;
+  const form = input.closest('form');
+  form.phone.value = opt.dataset.phone||'';
+  form.address.value = opt.dataset.address||'';
+  if(opt.dataset.area) form.area.value = opt.dataset.area;
+  if(opt.dataset.brand) form.brand.value = opt.dataset.brand;
+}
+function submitCall(e, type){
+  e.preventDefault();
+  const f = e.target;
+  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim(), area:f.area.value, brand:f.brand.value});
+  const call = {
+    id: uid('CALL'), date: f.date.value||todayStr(), type,
+    customerId: cust.id, customerName: cust.name, phone: cust.phone, address: cust.address, area: cust.area, brand: f.brand.value,
+    product: f.product.value, model: f.model.value, serial: f.serial.value.trim(), issue: f.issue.value.trim(),
+    technician: f.technician.value, priority: f.priority.value, status: f.technician.value && f.status.value==='Pending' ? 'Assigned' : f.status.value,
+    notes:'', photoCount:0, closedAt:'', centerTag:currentCenter?currentCenter.name:''
+  };
+  db.calls.push(call); saveDB(); clearDraft('mrl_draft_callForm'); closeModal(); render();
+  toast(`${type} call ${call.id} registered`, 'ok');
+}
+function viewCall(id){
+  const r = db.calls.find(c=>c.id===id); if(!r) return;
+  openModal(`Call ${r.id}`, `
+    <div class="ticket" style="box-shadow:none;border:1px solid var(--line);">
+      <div class="ticket-head">
+        <div><div class="ticket-brand">MRL India · ${esc(r.brand)}</div><div class="ticket-id">${r.id}</div></div>
+        ${stampFor(r.status)}
+      </div>
+      <div class="ticket-grid">
+        <div><div class="k">Call Type</div><div class="v"><span class="type-tag ${r.type==='Installation'?'install':'service'}">${r.type}</span></div></div>
+        <div><div class="k">Date</div><div class="v">${fmtDate(r.date)}</div></div>
+        <div><div class="k">Customer</div><div class="v">${esc(r.customerName)}</div></div>
+        <div><div class="k">Phone</div><div class="v">${esc(r.phone)}</div></div>
+        <div><div class="k">Address</div><div class="v">${esc(r.address)} ${r.area?('· '+esc(r.area)):''}</div></div>
+        <div><div class="k">Product</div><div class="v">${esc(r.product)} · ${esc(r.model)}</div></div>
+        <div><div class="k">Serial No.</div><div class="v">${esc(r.serial)||'—'}</div></div>
+        <div><div class="k">Technician</div><div class="v">${esc(r.technician||'Unassigned')}</div></div>
+        <div><div class="k">Priority</div><div class="v">${priorityBadge(r.priority)}</div></div>
+        <div><div class="k">Logged By</div><div class="v">${esc(r.centerTag)||'—'}</div></div>
+      </div>
+      <div class="tear"></div>
+      <div class="k">${r.type==='Service'?'Issue Description':'Installation Notes'}</div>
+      <div class="v" style="margin-top:4px;">${esc(r.issue)||'—'}</div>
+      <div id="ticketPhotosBox"></div>
+    </div>
+    <div class="form-grid" style="margin-top:18px;">
+      <div class="field"><label>Update Status</label>
+        <select onchange="handleStatusChange('${r.id}',this.value)">
+          ${['Pending','Assigned','In Progress','Completed','Cancelled'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Reassign Technician</label>
+        <select onchange="updateCallTech('${r.id}',this.value)">
+          <option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger-outline" onclick="deleteCall('${r.id}')">Delete</button>
+      ${r.status!=='Completed'?`<button class="btn btn-navy" onclick="openCloseCallModal('${r.id}')">${iconSvg('ticket')} Close Call</button>`:''}
+      <button class="btn btn-navy" onclick="makeJobCardFromCall('${r.id}')">Create Job Card</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+  `, true);
+  renderTicketPhotos(r);
+}
+function renderTicketPhotos(r){
+  const box = document.getElementById('ticketPhotosBox');
+  if(!box || !r.photoCount) return;
+  box.innerHTML = `<div class="tear"></div><div class="k">Closing Photos (loading…)</div>`;
+  loadPhotosForCall(r).then(photos=>{
+    const box2 = document.getElementById('ticketPhotosBox'); if(!box2) return;
+    box2.innerHTML = `
+      <div class="tear"></div>
+      <div class="k">Closing Photos (${photos.length}/4)${r.closedAt?' · Closed '+fmtDate(r.closedAt):''}</div>
+      <div class="ticket-photos">${photos.map(p=>`<img src="${p}" onclick="window.open('${p}','_blank')">`).join('')}</div>
+    `;
+  });
+}
+function handleStatusChange(id, status){
+  if(status==='Completed'){ openCloseCallModal(id); return; }
+  updateCallStatus(id, status);
+}
+function stampFor(status){
+  const map = {'Pending':'pending','Assigned':'pending','In Progress':'progress','Completed':'completed','Cancelled':'cancelled','Ready':'completed','Delivered':'completed'};
+  return `<div class="stamp ${map[status]||'pending'}">${status}</div>`;
+}
+function updateCallStatus(id, status){ const r=db.calls.find(c=>c.id===id); r.status=status; saveDB(); render(); viewCall(id); toast('Status updated','ok'); }
+
+/* ---------- CLOSE CALL (4-photo option) ---------- */
+let closePhotos = [null,null,null,null];
+function openCloseCallModal(id){
+  const r = db.calls.find(c=>c.id===id); if(!r) return;
+  closePhotos = [null,null,null,null];
+  openModal(`Close Call · ${r.id}`, `
+    <form id="closeCallForm" onsubmit="submitCloseCall(event,'${id}')">
+      <div class="field full" style="margin-bottom:14px;">
+        <label>Serial No.</label>
+        <input name="serial" value="${esc(r.serial)}" placeholder="e.g. MRL55Q-88213">
+      </div>
+      <div class="field full">
+        <label>Closing Photos <span class="req">*</span> <span style="text-transform:none;font-weight:500;color:var(--ink-soft);">— up to 4, at least 1 required</span></label>
+        <div class="photo-grid" id="photoGrid">${[0,1,2,3].map(i=>photoSlotHtml(i)).join('')}</div>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>Closing Notes</label>
+        <textarea name="closeNotes" placeholder="Any final remarks for the record">${esc(r.notes)}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="closeCallSubmitBtn">Mark Completed</button>
+      </div>
+    </form>
+  `, true);
+  if(r.photoCount){
+    loadPhotosForCall(r).then(photos=>{
+      photos.forEach((p,i)=>{ if(i<4) closePhotos[i]=p; });
+      const grid = document.getElementById('photoGrid'); if(grid) grid.innerHTML = [0,1,2,3].map(j=>photoSlotHtml(j)).join('');
+    });
+  }
+}
+function photoSlotHtml(i){
+  const p = closePhotos[i];
+  if(p){
+    return `<div class="photo-slot filled"><img src="${p}"><div class="rm" onclick="removeClosePhoto(event,${i})">&times;</div></div>`;
+  }
+  return `<label class="photo-slot"><span class="lbl">Photo ${i+1}</span><input type="file" accept="image/*" capture="environment" onchange="handlePhotoPick(event,${i})"></label>`;
+}
+function handlePhotoPick(e, i){
+  const file = e.target.files[0]; if(!file) return;
+  const slotEl = e.target.closest('.photo-slot'); if(slotEl) slotEl.querySelector('.lbl').textContent = 'Processing…';
+  compressImage(file).then(dataUrl=>{
+    closePhotos[i] = dataUrl;
+    document.getElementById('photoGrid').innerHTML = [0,1,2,3].map(j=>photoSlotHtml(j)).join('');
+  }).catch(()=> toast('Could not read that photo, try another','err'));
+}
+function removeClosePhoto(e, i){ e.stopPropagation(); e.preventDefault(); closePhotos[i]=null; document.getElementById('photoGrid').innerHTML = [0,1,2,3].map(j=>photoSlotHtml(j)).join(''); }
+function submitCloseCall(e, id){
+  e.preventDefault();
+  const f = e.target;
+  const photos = closePhotos.filter(Boolean);
+  if(!photos.length){ toast('Add at least 1 closing photo','err'); return; }
+  const r = db.calls.find(c=>c.id===id); if(!r) return;
+  const btn = document.getElementById('closeCallSubmitBtn'); if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  savePhotosForCall(id, photos).then(()=>{
+    r.serial = f.serial.value.trim();
+    r.photoCount = photos.length;
+    r.notes = f.closeNotes.value.trim();
+    r.status = 'Completed';
+    r.closedAt = todayStr();
+    saveDB(); closeModal(); render(); viewCall(id);
+    toast(`Call ${id} closed with ${photos.length} photo${photos.length>1?'s':''}`, 'ok');
+  }).catch(()=>{ if(btn){btn.disabled=false; btn.textContent='Mark Completed';} toast('Could not save photos — check your connection','err'); });
+}
+
+/* ---------- PENDING CALL ALERT ---------- */
+function daysSince(dateStr){
+  if(!dateStr) return 0;
+  const d1 = new Date(dateStr+'T00:00:00'), d2 = new Date(todayStr()+'T00:00:00');
+  return Math.max(0, Math.round((d2-d1)/86400000));
+}
+function pendingAlertList(){
+  return db.calls.filter(c=>c.status==='Pending'||c.status==='Assigned')
+    .map(c=>({...c, age:daysSince(c.date)}))
+    .sort((a,b)=>b.age-a.age);
+}
+function pendingAlertBanner(){
+  const list = pendingAlertList();
+  if(!list.length) return '';
+  const overdue = list.filter(c=>c.age>=1);
+  const danger = overdue.length>0;
+  return `
+  <div class="alert-banner ${danger?'danger':''}">
+    <div class="ic">${iconSvg('phone')}</div>
+    <div class="body">
+      <div class="title">${danger?`${overdue.length} pending call${overdue.length>1?'s':''} need attention`:`${list.length} call${list.length>1?'s':''} awaiting closure`}</div>
+      <div class="desc">${danger?'These have been open for 1+ day without completion. Tap a call to assign, update or close it.':'Not yet marked Completed. Review and close once resolved.'}</div>
+      <div class="chips">
+        ${list.slice(0,8).map(c=>`<div class="alert-chip ${c.age<1?'ok':''}" onclick="viewCall('${c.id}')"><span class="days">${c.age===0?'Today':c.age+'d'}</span>${esc(c.customerName)} · ${c.id}</div>`).join('')}
+        ${list.length>8?`<div class="alert-chip" onclick="navigate('calls')">+${list.length-8} more</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+function updateCallTech(id, tech){ const r=db.calls.find(c=>c.id===id); r.technician=tech; if(tech && r.status==='Pending') r.status='Assigned'; saveDB(); render(); viewCall(id); toast('Technician updated','ok'); }
+function deleteCall(id){ if(!confirm('Delete this call record?')) return; db.calls=db.calls.filter(c=>c.id!==id); saveDB(); closeModal(); render(); toast('Call deleted'); }
+
+/* =========================================================
+   TV INWARD / OUTWARD
+========================================================= */
+let inwardFilter = 'All';
+function renderInward(){
+  let rows = db.inward.filter(i=>
+    (inwardFilter==='All' || (inwardFilter==='Open'? i.status!=='Delivered' : i.status==='Delivered')) &&
+    (matchesSearch(i.customerName)||matchesSearch(i.phone)||matchesSearch(i.id)||matchesSearch(i.serial))
+  ).sort((a,b)=>(b.dateIn+b.id).localeCompare(a.dateIn+a.id));
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <h2>TV Inward / Outward Register</h2>
+      <div class="hint">${rows.length} of ${db.inward.length} records</div>
+      <div class="panel-head-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV('inward')">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openInwardForm()">+ Log Inward</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="filters">
+        <div class="pill-toggle">
+          ${['All','Open','Delivered'].map(t=>`<button class="${inwardFilter===t?'active':''}" onclick="inwardFilter='${t}';render()">${t}</button>`).join('')}
+        </div>
+        <div class="spacer"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Inward ID</th><th>Date In</th><th>Customer</th><th>Model</th><th>Serial No.</th><th>Technician</th><th>Status</th><th>Date Out</th><th></th></tr></thead>
+          <tbody>
+            ${rows.length? rows.map(r=>`
+              <tr>
+                <td class="id-mono">${r.id}</td>
+                <td>${fmtDate(r.dateIn)}</td>
+                <td>${esc(r.customerName)}</td>
+                <td>${esc(r.model)}</td>
+                <td class="muted">${esc(r.serial)||'—'}</td>
+                <td><span class="tech-row"><span class="avatar">${initials(r.technician)}</span>${esc(r.technician||'—')}</span></td>
+                <td>${statusBadge(r.status)}</td>
+                <td>${r.dateOut? fmtDate(r.dateOut) : '<span class="muted">—</span>'}</td>
+                <td><button class="icon-btn" onclick="viewInward('${r.id}')">${iconSvg('ticket')}</button></td>
+              </tr>`).join('') : `<tr class="empty-row"><td colspan="9">No inward records yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+function openInwardForm(){
+  openModal('Log TV Inward', `
+    <form id="inwardForm" onsubmit="submitInward(event)">
+      <div class="hint" style="margin-bottom:10px;">Auto-saving as you type — safe if the app closes unexpectedly.</div>
+      <div class="form-grid">
+        <div class="field"><label>Customer Name <span class="req">*</span></label>
+          <input list="custList2" name="customerName" required autocomplete="off" oninput="fillFromCustomer(this)"><datalist id="custList2">${customerDatalist()}</datalist>
+        </div>
+        <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10"></div>
+        <div class="field full"><label>Address</label><input name="address"></div>
+        <div class="field"><label>Model</label><select name="model">${TV_MODELS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+        <div class="field"><label>Serial / IMEI No.</label><input name="serial" placeholder="e.g. MRL55Q-88213"></div>
+        <div class="field full"><label>Issue Reported</label><textarea name="issue" placeholder="Fault description"></textarea></div>
+        <div class="field full"><label>Condition on Inward</label><input name="conditionIn" placeholder="e.g. Screen cracked top-left, remote not included"></div>
+        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Date In</label><input type="date" name="dateIn" value="${todayStr()}"></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Inward Entry</button>
+      </div>
+    </form>
+  `, true);
+  attachAutosave('inwardForm', 'mrl_draft_inwardForm');
+}
+function submitInward(e){
+  e.preventDefault();
+  const f = e.target;
+  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim()});
+  const rec = {
+    id: uid('INW'), dateIn: f.dateIn.value||todayStr(), customerId:cust.id, customerName:cust.name, phone:cust.phone,
+    product:'TV', model:f.model.value, serial:f.serial.value.trim(), issue:f.issue.value.trim(), conditionIn:f.conditionIn.value.trim(),
+    technician:f.technician.value, status: f.technician.value?'In Progress':'Pending', dateOut:'', conditionOut:'', deliveredBy:'', notes:''
+  };
+  db.inward.push(rec); saveDB(); clearDraft('mrl_draft_inwardForm'); closeModal(); render();
+  toast(`TV inward ${rec.id} logged`, 'ok');
+}
+function viewInward(id){
+  const r = db.inward.find(i=>i.id===id); if(!r) return;
+  const canDeliver = r.status!=='Delivered';
+  openModal(`Inward ${r.id}`, `
+    <div class="ticket" style="box-shadow:none;border:1px solid var(--line);">
+      <div class="ticket-head">
+        <div><div class="ticket-brand">MRL India · Service Center</div><div class="ticket-id">${r.id}</div></div>
+        ${stampFor(r.status)}
+      </div>
+      <div class="ticket-grid">
+        <div><div class="k">Customer</div><div class="v">${esc(r.customerName)}</div></div>
+        <div><div class="k">Phone</div><div class="v">${esc(r.phone)}</div></div>
+        <div><div class="k">Model</div><div class="v">${esc(r.model)}</div></div>
+        <div><div class="k">Serial No.</div><div class="v">${esc(r.serial)||'—'}</div></div>
+        <div><div class="k">Date In</div><div class="v">${fmtDate(r.dateIn)}</div></div>
+        <div><div class="k">Technician</div><div class="v">${esc(r.technician)||'Unassigned'}</div></div>
+        <div><div class="k">Date Out</div><div class="v">${r.dateOut?fmtDate(r.dateOut):'—'}</div></div>
+        <div><div class="k">Delivered By</div><div class="v">${esc(r.deliveredBy)||'—'}</div></div>
+      </div>
+      <div class="tear"></div>
+      <div class="k">Condition on Inward</div><div class="v" style="margin:4px 0 10px;">${esc(r.conditionIn)||'—'}</div>
+      <div class="k">Issue Reported</div><div class="v" style="margin-top:4px;">${esc(r.issue)||'—'}</div>
+      ${r.conditionOut? `<div class="k" style="margin-top:10px;">Condition on Outward</div><div class="v" style="margin-top:4px;">${esc(r.conditionOut)}</div>`:''}
+    </div>
+    ${canDeliver ? `
+    <div class="panel" style="margin-top:16px;box-shadow:none;">
+      <div class="panel-head"><h2 style="font-size:13.5px;">Mark as Delivered (Outward)</h2></div>
+      <div class="panel-body">
+        <form onsubmit="submitOutward(event,'${r.id}')">
+          <div class="form-grid">
+            <div class="field"><label>Date Out</label><input type="date" name="dateOut" value="${todayStr()}"></div>
+            <div class="field"><label>Delivered By</label><select name="deliveredBy"><option value="">Select technician</option>${TECH_ROSTER.map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
+            <div class="field full"><label>Condition on Outward</label><input name="conditionOut" placeholder="e.g. Repaired, tested OK, handed to customer"></div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-danger-outline" onclick="deleteInward('${r.id}')">Delete Record</button>
+            <button type="submit" class="btn btn-primary">Confirm Outward</button>
+          </div>
+        </form>
+      </div>
+    </div>` : `
+    <div class="form-actions"><button class="btn btn-danger-outline" onclick="deleteInward('${r.id}')">Delete</button><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>
+    `}
+  `, true);
+}
+function submitOutward(e, id){
+  e.preventDefault();
+  const f = e.target; const r = db.inward.find(i=>i.id===id);
+  r.dateOut = f.dateOut.value||todayStr(); r.deliveredBy = f.deliveredBy.value; r.conditionOut = f.conditionOut.value.trim(); r.status='Delivered';
+  saveDB(); closeModal(); render();
+  toast(`${id} marked delivered`, 'ok');
+}
+function deleteInward(id){ if(!confirm('Delete this inward record?')) return; db.inward=db.inward.filter(i=>i.id!==id); saveDB(); closeModal(); render(); toast('Record deleted'); }
+
+/* =========================================================
+   JOB CARDS
+========================================================= */
+function makeJobCardFromCall(callId){
+  const call = db.calls.find(c=>c.id===callId); if(!call) return;
+  const jc = {id: uid('JC'), source:'Call', sourceId:call.id, date:todayStr(), customerName:call.customerName, phone:call.phone,
+    product:call.product, model:call.model, issue:call.issue, technician:call.technician, status:call.status, charge:'', parts:'', notes:''};
+  db.jobcards.push(jc); saveDB(); closeModal(); currentRoute='jobcards'; render();
+  toast(`Job card ${jc.id} created`, 'ok');
+}
+function renderJobCards(){
+  let rows = db.jobcards.filter(j=> matchesSearch(j.customerName)||matchesSearch(j.id)).sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id));
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Job Cards</h2>
+      <div class="hint">${rows.length} tickets</div>
+      <div class="panel-head-actions"><button class="btn btn-primary btn-sm" onclick="openBlankJobCardForm()">+ New Job Card</button></div>
+    </div>
+    <div class="panel-body">
+      ${rows.length? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+        ${rows.map(j=>`
+          <div class="ticket">
+            <div class="ticket-head">
+              <div><div class="ticket-brand">MRL India</div><div class="ticket-id">${j.id}</div></div>
+              ${stampFor(j.status)}
+            </div>
+            <div class="ticket-grid">
+              <div><div class="k">Customer</div><div class="v">${esc(j.customerName)}</div></div>
+              <div><div class="k">Date</div><div class="v">${fmtDate(j.date)}</div></div>
+              <div><div class="k">Product</div><div class="v">${esc(j.product)} · ${esc(j.model)}</div></div>
+              <div><div class="k">Technician</div><div class="v">${esc(j.technician)||'Unassigned'}</div></div>
+            </div>
+            <div class="tear"></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="printJobCard('${j.id}')">Print</button>
+              <button class="btn btn-ghost btn-sm" onclick="editJobCard('${j.id}')">Edit</button>
+              <button class="btn btn-danger-outline btn-sm" onclick="deleteJobCard('${j.id}')">Delete</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>` : emptyState('ticket','No job cards yet','Create one from a call, or start blank.')}
+    </div>
+  </div>`;
+}
+function openBlankJobCardForm(){
+  openModal('New Job Card', `
+    <form onsubmit="submitBlankJobCard(event)">
+      <div class="form-grid">
+        <div class="field"><label>Customer Name <span class="req">*</span></label><input list="custList3" name="customerName" required><datalist id="custList3">${customerDatalist()}</datalist></div>
+        <div class="field"><label>Phone</label><input name="phone" maxlength="10"></div>
+        <div class="field"><label>Product</label><select name="product"><option>TV</option><option>Speaker</option></select></div>
+        <div class="field"><label>Model</label><input name="model"></div>
+        <div class="field full"><label>Issue / Work Description</label><textarea name="issue"></textarea></div>
+        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Status</label><select name="status">${['Pending','In Progress','Completed'].map(s=>`<option>${s}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Create</button></div>
+    </form>
+  `, true);
+}
+function submitBlankJobCard(e){
+  e.preventDefault(); const f=e.target;
+  const jc = {id: uid('JC'), source:'Manual', sourceId:'', date:todayStr(), customerName:f.customerName.value.trim(), phone:f.phone.value.trim(),
+    product:f.product.value, model:f.model.value.trim(), issue:f.issue.value.trim(), technician:f.technician.value, status:f.status.value, charge:'', parts:'', notes:''};
+  db.jobcards.push(jc); saveDB(); closeModal(); render(); toast(`Job card ${jc.id} created`,'ok');
+}
+function editJobCard(id){
+  const j = db.jobcards.find(x=>x.id===id); if(!j) return;
+  openModal(`Edit ${j.id}`, `
+    <form onsubmit="submitEditJobCard(event,'${id}')">
+      <div class="form-grid">
+        <div class="field"><label>Status</label><select name="status">${['Pending','In Progress','Completed','Cancelled'].map(s=>`<option ${j.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option ${j.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Parts Used</label><input name="parts" value="${esc(j.parts)}" placeholder="e.g. Power board, remote"></div>
+        <div class="field"><label>Service Charge (₹)</label><input name="charge" value="${esc(j.charge)}" type="number" min="0"></div>
+        <div class="field full"><label>Notes</label><textarea name="notes">${esc(j.notes)}</textarea></div>
+      </div>
+      <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
+    </form>
+  `, true);
+}
+function submitEditJobCard(e,id){
+  e.preventDefault(); const f=e.target; const j=db.jobcards.find(x=>x.id===id);
+  j.status=f.status.value; j.technician=f.technician.value; j.parts=f.parts.value; j.charge=f.charge.value; j.notes=f.notes.value;
+  saveDB(); closeModal(); render(); toast('Job card updated','ok');
+}
+function deleteJobCard(id){ if(!confirm('Delete this job card?')) return; db.jobcards=db.jobcards.filter(j=>j.id!==id); saveDB(); render(); toast('Job card deleted'); }
+function printJobCard(id){
+  const j = db.jobcards.find(x=>x.id===id); if(!j) return;
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html><head><title>${j.id}</title><style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#1B2733;}
+      h1{color:#E63946;font-size:20px;margin-bottom:2px;} h2{color:#1D3557;font-size:15px;margin:18px 0 6px;}
+      .row{display:flex;gap:30px;margin-bottom:6px;} .k{font-size:11px;color:#5B6B7A;text-transform:uppercase;}
+      table{width:100%;border-collapse:collapse;} td{padding:6px 0;border-bottom:1px solid #eee;font-size:13px;}
+    </style></head><body>
+    <h1>MRL India — Job Card</h1>
+    <div class="k">${j.id}</div>
+    <h2>Customer Details</h2>
+    <table>
+      <tr><td class="k">Customer</td><td>${esc(j.customerName)}</td></tr>
+      <tr><td class="k">Phone</td><td>${esc(j.phone)||'—'}</td></tr>
+      <tr><td class="k">Date</td><td>${fmtDate(j.date)}</td></tr>
+    </table>
+    <h2>Service Details</h2>
+    <table>
+      <tr><td class="k">Product</td><td>${esc(j.product)} · ${esc(j.model)}</td></tr>
+      <tr><td class="k">Issue</td><td>${esc(j.issue)||'—'}</td></tr>
+      <tr><td class="k">Technician</td><td>${esc(j.technician)||'Unassigned'}</td></tr>
+      <tr><td class="k">Status</td><td>${j.status}</td></tr>
+      <tr><td class="k">Parts Used</td><td>${esc(j.parts)||'—'}</td></tr>
+      <tr><td class="k">Service Charge</td><td>${j.charge? '₹'+j.charge : '—'}</td></tr>
+      <tr><td class="k">Notes</td><td>${esc(j.notes)||'—'}</td></tr>
+    </table>
+    </body></html>
+  `);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(), 300);
+}
+
+/* =========================================================
+   CUSTOMERS
+========================================================= */
+function renderCustomers(){
+  let rows = db.customers.filter(c=> matchesSearch(c.name)||matchesSearch(c.phone)||matchesSearch(c.id)).sort((a,b)=>a.name.localeCompare(b.name));
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Customer Database</h2>
+      <div class="hint">${rows.length} of ${db.customers.length}</div>
+      <div class="panel-head-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV('customers')">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">+ Add Customer</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Area</th><th>Brand</th><th>Calls</th><th>Inward</th><th></th></tr></thead>
+          <tbody>
+          ${rows.length? rows.map(c=>{
+            const callCount = db.calls.filter(x=>x.customerId===c.id).length;
+            const inwardCount = db.inward.filter(x=>x.customerId===c.id).length;
+            return `<tr>
+              <td class="id-mono">${c.id}</td>
+              <td>${esc(c.name)}</td>
+              <td class="muted">${esc(c.phone)}</td>
+              <td>${esc(c.area)||'—'}</td>
+              <td>${esc(c.brand)||'—'}</td>
+              <td>${callCount}</td>
+              <td>${inwardCount}</td>
+              <td><button class="icon-btn" onclick="viewCustomer('${c.id}')">${iconSvg('user')}</button></td>
+            </tr>`;
+          }).join('') : `<tr class="empty-row"><td colspan="8">No customers yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+function openCustomerForm(){
+  openModal('Add Customer', `
+    <form id="customerForm" onsubmit="submitCustomer(event)">
+      <div class="hint" style="margin-bottom:10px;">Auto-saving as you type — safe if the app closes unexpectedly.</div>
+      <div class="form-grid">
+        <div class="field"><label>Name <span class="req">*</span></label><input name="name" required></div>
+        <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10"></div>
+        <div class="field full"><label>Address</label><input name="address"></div>
+        <div class="field"><label>Area</label><select name="area">${AREAS.map(a=>`<option>${a}</option>`).join('')}</select></div>
+        <div class="field"><label>Brand</label><select name="brand">${BRANDS.map(b=>`<option>${b}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Save Customer</button></div>
+    </form>
+  `);
+  attachAutosave('customerForm', 'mrl_draft_customerForm');
+}
+function submitCustomer(e){
+  e.preventDefault(); const f=e.target;
+  upsertCustomer({name:f.name.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim(), area:f.area.value, brand:f.brand.value});
+  saveDB(); clearDraft('mrl_draft_customerForm'); closeModal(); render(); toast('Customer saved','ok');
+}
+function viewCustomer(id){
+  const c = db.customers.find(x=>x.id===id); if(!c) return;
+  const calls = db.calls.filter(x=>x.customerId===id);
+  const inward = db.inward.filter(x=>x.customerId===id);
+  openModal(esc(c.name), `
+    <div class="ticket-grid" style="margin-bottom:14px;">
+      <div><div class="k">Phone</div><div class="v">${esc(c.phone)}</div></div>
+      <div><div class="k">Area</div><div class="v">${esc(c.area)||'—'}</div></div>
+      <div><div class="k">Address</div><div class="v">${esc(c.address)||'—'}</div></div>
+      <div><div class="k">Brand</div><div class="v">${esc(c.brand)||'—'}</div></div>
+    </div>
+    <h3 style="font-family:var(--disp);font-size:13px;color:var(--navy);margin-bottom:8px;">Call History (${calls.length})</h3>
+    <div class="table-wrap" style="margin-bottom:16px;"><table><thead><tr><th>ID</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${calls.length? calls.map(r=>`<tr><td class="id-mono">${r.id}</td><td>${r.type}</td><td>${fmtDate(r.date)}</td><td>${statusBadge(r.status)}</td></tr>`).join(''):'<tr class="empty-row"><td colspan="4">None</td></tr>'}</tbody></table></div>
+    <h3 style="font-family:var(--disp);font-size:13px;color:var(--navy);margin-bottom:8px;">Inward History (${inward.length})</h3>
+    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Model</th><th>Date In</th><th>Status</th></tr></thead>
+    <tbody>${inward.length? inward.map(r=>`<tr><td class="id-mono">${r.id}</td><td>${esc(r.model)}</td><td>${fmtDate(r.dateIn)}</td><td>${statusBadge(r.status)}</td></tr>`).join(''):'<tr class="empty-row"><td colspan="4">None</td></tr>'}</tbody></table></div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>
+  `, true);
+}
+
+/* =========================================================
+   TECHNICIANS
+========================================================= */
+function renderTechnicians(){
+  const rows = TECH_ROSTER.map(t=>{
+    const active = db.calls.filter(c=>c.technician===t && c.status!=='Completed' && c.status!=='Cancelled').length;
+    const completed = db.calls.filter(c=>c.technician===t && c.status==='Completed').length;
+    const inwardActive = db.inward.filter(i=>i.technician===t && i.status!=='Delivered').length;
+    return {name:t, active, completed, inwardActive};
+  });
+  return `
+  <div class="panel">
+    <div class="panel-head"><h2>Technician Roster</h2><div class="hint">${rows.length} technicians</div></div>
+    <div class="panel-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Technician</th><th>Active Calls</th><th>Completed</th><th>TVs In Hand</th><th>Load</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td><span class="tech-row"><span class="avatar">${initials(r.name)}</span>${r.name}</span></td>
+                <td>${r.active}</td>
+                <td>${r.completed}</td>
+                <td>${r.inwardActive}</td>
+                <td><span class="badge ${r.active===0?'st-completed':r.active<3?'st-assigned':'st-progress'}">${r.active===0?'Free':r.active<3?'Moderate':'Busy'}</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function emptyState(icon, title, desc){
+  return `<div class="empty-state">${iconSvg(icon)}<div class="t">${title}</div><div class="d">${desc}</div></div>`;
+}
+
+/* ---------- CSV EXPORT ---------- */
+function exportCSV(kind){
+  let rows = [], headers = [];
+  if(kind==='calls'){ headers=['ID','Date','Type','Customer','Phone','Product','Model','Serial No.','Technician','Priority','Status','Closed On','Photos','Logged By']; rows = db.calls.map(r=>[r.id,r.date,r.type,r.customerName,r.phone,r.product,r.model,r.serial||'',r.technician,r.priority,r.status,r.closedAt||'',r.photoCount||0,r.centerTag||'']); }
+  if(kind==='inward'){ headers=['ID','Date In','Customer','Phone','Model','Serial','Technician','Status','Date Out']; rows = db.inward.map(r=>[r.id,r.dateIn,r.customerName,r.phone,r.model,r.serial,r.technician,r.status,r.dateOut]); }
+  if(kind==='customers'){ headers=['ID','Name','Phone','Address','Area','Brand']; rows = db.customers.map(r=>[r.id,r.name,r.phone,r.address,r.area,r.brand]); }
+  const csv = [headers.join(','), ...rows.map(r=>r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MRL_${kind}_${todayStr()}.csv`; a.click();
+  toast('CSV exported','ok');
+}
+
+/* ---------- INIT ---------- */
+/* App renders once a center logs in (see bootApp / tryAutoLogin above). */
+</script>
+</body>
+</html>
