@@ -410,11 +410,25 @@ function handleLogout(){
 }
 
 const STORE_KEY = 'mrl_crm_data_v1';
-const TECH_ROSTER = ['Omkar','Kumar','Riyaz','Gopal','Shashi','Amit','Manu','Sakthi','Anjaneya','Vikas'];
-const BRANDS = ['MRL India','PHILIRAY','Punarvika'];
+const TECH_ROSTER = ['Omkar','Kumar','Riyaz','Gopal','Shashi','Amit','Manu','Sakthi','Anjaneya','Vikas','COOL TECH SOLUTION','GOPAL DAVANGERE','RIYAZ BELLARY'];
+function techNames(){ return (db.technicians&&db.technicians.length? db.technicians : TECH_ROSTER.map(n=>({name:n}))).map(t=>t.name); }
+function ensureTechRosterSeeded(){
+  let changed = false;
+  if(!db.technicians) db.technicians = [];
+  TECH_ROSTER.forEach(n=>{ if(!db.technicians.some(t=>t.name===n)){ db.technicians.push({name:n, status:'Available'}); changed = true; } });
+  return changed;
+}
+function addTechnician(name){
+  name = (name||'').trim(); if(!name) return false;
+  if(!db.technicians) db.technicians = [];
+  if(db.technicians.some(t=>t.name.toLowerCase()===name.toLowerCase())) return false;
+  db.technicians.push({name, status:'Available'});
+  return true;
+}
+const BRANDS = ['MRL India'];
 const TV_MODELS = ['24" LED','32" LED','32" Smart','40" Smart','43" Smart','43" 4K','50" 4K','55" 4K Smart','55" QLED','65" 4K Smart','65" QLED','75" 4K Smart','DRONA 32','DRONA 43','DRONA 55','DRONA 65'];
 const SPEAKER_MODELS = ['SPECTRA','VIBEVERSE','PIXEL BEAT','HD-108','T-6666','FLAME','HARMONY X','FUSION MIX','RHYTHMRISE','MINI','MAX','VG500'];
-const AREAS = ['Kumarapark','Rajajinagar','Malleshwaram','Yeshwanthpur','Vijayanagar','Basavanagudi','Jayanagar','Whitefield','HSR Layout','Other'];
+const AREAS = ['Bagalkot','Ballari','Belagavi','Bengaluru Rural','Bengaluru Urban','Bidar','Chamarajanagar','Chikballapur','Chikkamagaluru','Chitradurga','Dakshina Kannada','Davanagere','Dharwad','Gadag','Hassan','Haveri','Kalaburagi','Kodagu','Kolar','Koppal','Mandya','Mysuru','Raichur','Ramanagara','Shivamogga','Tumakuru','Udupi','Uttara Kannada','Vijayapura','Vijayanagara','Yadgir','Other'];
 
 function uid(prefix){
   const d = new Date();
@@ -442,6 +456,7 @@ function defaultDB(){
     inward: [],       // TV inward/outward register
     jobcards: [],
     technicians: TECH_ROSTER.map(n=>({name:n, status:'Available'})),
+    settings: { kmRate: 10 }, // ₹ per km, used for travel charge calculation
   };
 }
 function seedDB(){
@@ -485,6 +500,7 @@ function startCloudSync(){
       db = seeded; render(); updateSyncPill('online'); return;
     }
     db = Object.assign(defaultDB(), snap.data());
+    if(ensureTechRosterSeeded()){ fsDoc.set(db).catch(e=>console.warn('roster merge save failed', e)); }
     render();
     updateSyncPill(snap.metadata.fromCache ? 'offline' : 'online', snap.metadata.fromCache ? 'Reconnecting…' : 'Synced — all centers');
   }, err=>{
@@ -545,7 +561,7 @@ function bootApp(){
   document.getElementById('app').style.display = 'flex';
   document.getElementById('centerBadgeName').textContent = currentCenter.name;
   if(cloudReady){ updateSyncPill('offline','Connecting…'); startCloudSync(); }
-  else { db = loadLocalDB(); render(); updateSyncPill('offline','Local only — add Firebase config to sync'); }
+  else { db = loadLocalDB(); if(ensureTechRosterSeeded()) saveLocalDB(); render(); updateSyncPill('offline','Local only — add Firebase config to sync'); }
 }
 (function tryAutoLogin(){
   const savedId = sessionStorage.getItem('mrl_center_id');
@@ -582,6 +598,9 @@ const ROUTES = [
     {key:'customers', label:'Customers', icon:'user'},
     {key:'technicians', label:'Technicians', icon:'wrench'},
   ]},
+  {group:'Finance', items:[
+    {key:'billing', label:'Monthly Billing', icon:'billing'},
+  ]},
 ];
 const ICONS = {
   grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -590,6 +609,7 @@ const ICONS = {
   ticket:'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/>',
   wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-3 3-2-2 3-3z"/>',
+  billing:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
 };
 function iconSvg(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`; }
 
@@ -615,6 +635,7 @@ function navCount(key){
   if(key==='jobcards') return db.jobcards.length;
   if(key==='customers') return db.customers.length;
   if(key==='technicians') return db.technicians.length;
+  if(key==='billing') return db.calls.filter(c=>c.status==='Completed'&&!c.billed).length;
   return '';
 }
 function navigate(key){
@@ -679,7 +700,8 @@ function render(){
     inward:['TV Inward / Outward','Customer TV movement register'],
     jobcards:['Job Cards','Printable service tickets'],
     customers:['Customers','Customer master database'],
-    technicians:['Technicians','Roster & workload']};
+    technicians:['Technicians','Roster & workload'],
+    billing:['Monthly Billing','Service + travel charges by month']};
   document.getElementById('pageTitle').textContent = titleMap[currentRoute][0];
   document.getElementById('pageCrumb').textContent = titleMap[currentRoute][1];
   const c = document.getElementById('content');
@@ -689,6 +711,7 @@ function render(){
   else if(currentRoute==='jobcards') c.innerHTML = renderJobCards();
   else if(currentRoute==='customers') c.innerHTML = renderCustomers();
   else if(currentRoute==='technicians') c.innerHTML = renderTechnicians();
+  else if(currentRoute==='billing') c.innerHTML = renderBilling();
   if(currentRoute==='dashboard') drawCharts();
 }
 
@@ -788,9 +811,9 @@ function drawCharts(){
   const ctx2 = document.getElementById('chartStatus');
   if(ctx2) chartRefs.status = new Chart(ctx2, {type:'bar', data:{labels:statuses, datasets:[{data:counts, backgroundColor:['#E9A23B','#457B9D','#E63946','#2A9D8F','#94A3AF'], borderRadius:6}]}, options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}}});
 
-  const techData = TECH_ROSTER.map(t=>db.calls.filter(c=>c.technician===t && c.status!=='Completed' && c.status!=='Cancelled').length);
+  const techData = techNames().map(t=>db.calls.filter(c=>c.technician===t && c.status!=='Completed' && c.status!=='Cancelled').length);
   const ctx3 = document.getElementById('chartTech');
-  if(ctx3) chartRefs.tech = new Chart(ctx3, {type:'bar', data:{labels:TECH_ROSTER, datasets:[{data:techData, backgroundColor:'#1D3557', borderRadius:6}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+  if(ctx3) chartRefs.tech = new Chart(ctx3, {type:'bar', data:{labels:techNames(), datasets:[{data:techData, backgroundColor:'#1D3557', borderRadius:6}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
 }
 
 /* =========================================================
@@ -872,7 +895,7 @@ function openCallForm(type){
         <div class="field full"><label>${type==='Service'?'Issue Description':'Installation Notes'} ${type==='Service'?'<span class="req">*</span>':''}</label>
           <textarea name="issue" ${type==='Service'?'required':''} placeholder="${type==='Service'?'Describe the fault reported by customer':'e.g. New unit, wall-mount required, demo needed'}"></textarea>
         </div>
-        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${techNames().map(t=>`<option>${t}</option>`).join('')}</select></div>
         <div class="field"><label>Priority</label><select name="priority"><option>Normal</option><option>High</option><option>Low</option></select></div>
         <div class="field"><label>Call Date</label><input type="date" name="date" value="${todayStr()}"></div>
         <div class="field"><label>Status</label><select name="status"><option>Pending</option><option>Assigned</option><option>In Progress</option><option>Completed</option></select></div>
@@ -908,7 +931,8 @@ function submitCall(e, type){
     customerId: cust.id, customerName: cust.name, phone: cust.phone, address: cust.address, area: cust.area, brand: f.brand.value,
     product: f.product.value, model: f.model.value, serial: f.serial.value.trim(), issue: f.issue.value.trim(),
     technician: f.technician.value, priority: f.priority.value, status: f.technician.value && f.status.value==='Pending' ? 'Assigned' : f.status.value,
-    notes:'', photoCount:0, closedAt:'', centerTag:currentCenter?currentCenter.name:''
+    notes:'', photoCount:0, closedAt:'', centerTag:currentCenter?currentCenter.name:'',
+    distanceKm:0, charge:0, billed:false, billedAt:''
   };
   db.calls.push(call); saveDB(); closeModal(); render();
   toast(`${type} call ${call.id} registered`, 'ok');
@@ -932,6 +956,12 @@ function viewCall(id){
         <div><div class="k">Technician</div><div class="v">${esc(r.technician||'Unassigned')}</div></div>
         <div><div class="k">Priority</div><div class="v">${priorityBadge(r.priority)}</div></div>
         <div><div class="k">Logged By</div><div class="v">${esc(r.centerTag)||'—'}</div></div>
+        ${r.status==='Completed'?`
+        <div><div class="k">Distance Travelled</div><div class="v">${r.distanceKm||0} km</div></div>
+        <div><div class="k">Service Charge</div><div class="v">₹${(r.charge||0).toFixed(0)}</div></div>
+        <div><div class="k">Travel Charge</div><div class="v">₹${(r.travelCharge||0).toFixed(0)}</div></div>
+        <div><div class="k">Total Bill</div><div class="v" style="font-weight:700;color:var(--navy);">₹${((r.charge||0)+(r.travelCharge||0)).toFixed(0)}</div></div>
+        `:''}
       </div>
       <div class="tear"></div>
       <div class="k">${r.type==='Service'?'Issue Description':'Installation Notes'}</div>
@@ -946,7 +976,7 @@ function viewCall(id){
       </div>
       <div class="field"><label>Reassign Technician</label>
         <select onchange="updateCallTech('${r.id}',this.value)">
-          <option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}
+          <option value="">Unassigned</option>${techNames().map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -965,12 +995,24 @@ function renderTicketPhotos(r){
   box.innerHTML = `<div class="tear"></div><div class="k">Closing Photos (loading…)</div>`;
   loadPhotosForCall(r).then(photos=>{
     const box2 = document.getElementById('ticketPhotosBox'); if(!box2) return;
+    window.__currentPhotos = photos;
     box2.innerHTML = `
       <div class="tear"></div>
       <div class="k">Closing Photos (${photos.length}/4)${r.closedAt?' · Closed '+fmtDate(r.closedAt):''}</div>
-      <div class="ticket-photos">${photos.map(p=>`<img src="${p}" onclick="window.open('${p}','_blank')">`).join('')}</div>
+      <div class="ticket-photos">${photos.map((p,i)=>`<img src="${p}" onclick="openPhotoLightbox(${i})">`).join('')}</div>
     `;
   });
+}
+function openPhotoLightbox(i){
+  const src = (window.__currentPhotos||[])[i]; if(!src) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,16,24,.9);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;';
+  overlay.onclick = ()=> overlay.remove();
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:95%;max-height:95%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);';
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
 }
 function handleStatusChange(id, status){
   if(status==='Completed'){ openCloseCallModal(id); return; }
@@ -989,9 +1031,11 @@ function openCloseCallModal(id){
   closePhotos = [null,null,null,null];
   openModal(`Close Call · ${r.id}`, `
     <form id="closeCallForm" onsubmit="submitCloseCall(event,'${id}')">
-      <div class="field full" style="margin-bottom:14px;">
-        <label>Serial No.</label>
-        <input name="serial" value="${esc(r.serial)}" placeholder="e.g. MRL55Q-88213">
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="field"><label>Serial No.</label><input name="serial" value="${esc(r.serial)}" placeholder="e.g. MRL55Q-88213"></div>
+        <div class="field"><label>Distance Travelled (km)</label><input name="distanceKm" type="number" min="0" step="0.1" value="${r.distanceKm||''}" placeholder="e.g. 12" oninput="updateAutoTravelPreview(this.value)"></div>
+        <div class="field"><label>Service Charge (₹)</label><input name="charge" type="number" min="0" value="${r.charge||''}" placeholder="e.g. 300"></div>
+        <div class="field"><label>Travel Charge (auto)</label><input id="autoTravelCharge" disabled value="₹${((r.distanceKm||0)*(db.settings.kmRate||10)).toFixed(0)} (@₹${db.settings.kmRate||10}/km)"></div>
       </div>
       <div class="field full">
         <label>Closing Photos <span class="req">*</span> <span style="text-transform:none;font-weight:500;color:var(--ink-soft);">— up to 4, at least 1 required</span></label>
@@ -1029,6 +1073,11 @@ function handlePhotoPick(e, i){
     document.getElementById('photoGrid').innerHTML = [0,1,2,3].map(j=>photoSlotHtml(j)).join('');
   }).catch(()=> toast('Could not read that photo, try another','err'));
 }
+function updateAutoTravelPreview(km){
+  const el = document.getElementById('autoTravelCharge'); if(!el) return;
+  const rate = db.settings.kmRate||10;
+  el.value = `₹${((parseFloat(km)||0)*rate).toFixed(0)} (@₹${rate}/km)`;
+}
 function removeClosePhoto(e, i){ e.stopPropagation(); e.preventDefault(); closePhotos[i]=null; document.getElementById('photoGrid').innerHTML = [0,1,2,3].map(j=>photoSlotHtml(j)).join(''); }
 function submitCloseCall(e, id){
   e.preventDefault();
@@ -1041,6 +1090,9 @@ function submitCloseCall(e, id){
     r.serial = f.serial.value.trim();
     r.photoCount = photos.length;
     r.notes = f.closeNotes.value.trim();
+    r.distanceKm = parseFloat(f.distanceKm.value)||0;
+    r.charge = parseFloat(f.charge.value)||0;
+    r.travelCharge = r.distanceKm * (db.settings.kmRate||10);
     r.status = 'Completed';
     r.closedAt = todayStr();
     saveDB(); closeModal(); render(); viewCall(id);
@@ -1142,7 +1194,7 @@ function openInwardForm(){
         <div class="field"><label>Serial / IMEI No.</label><input name="serial" placeholder="e.g. MRL55Q-88213"></div>
         <div class="field full"><label>Issue Reported</label><textarea name="issue" placeholder="Fault description"></textarea></div>
         <div class="field full"><label>Condition on Inward</label><input name="conditionIn" placeholder="e.g. Screen cracked top-left, remote not included"></div>
-        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${techNames().map(t=>`<option>${t}</option>`).join('')}</select></div>
         <div class="field"><label>Date In</label><input type="date" name="dateIn" value="${todayStr()}"></div>
       </div>
       <div class="form-actions">
@@ -1195,7 +1247,7 @@ function viewInward(id){
         <form onsubmit="submitOutward(event,'${r.id}')">
           <div class="form-grid">
             <div class="field"><label>Date Out</label><input type="date" name="dateOut" value="${todayStr()}"></div>
-            <div class="field"><label>Delivered By</label><select name="deliveredBy"><option value="">Select technician</option>${TECH_ROSTER.map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
+            <div class="field"><label>Delivered By</label><select name="deliveredBy"><option value="">Select technician</option>${techNames().map(t=>`<option ${r.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
             <div class="field full"><label>Condition on Outward</label><input name="conditionOut" placeholder="e.g. Repaired, tested OK, handed to customer"></div>
           </div>
           <div class="form-actions">
@@ -1272,7 +1324,7 @@ function openBlankJobCardForm(){
         <div class="field"><label>Product</label><select name="product"><option>TV</option><option>Speaker</option></select></div>
         <div class="field"><label>Model</label><input name="model"></div>
         <div class="field full"><label>Issue / Work Description</label><textarea name="issue"></textarea></div>
-        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${techNames().map(t=>`<option>${t}</option>`).join('')}</select></div>
         <div class="field"><label>Status</label><select name="status">${['Pending','In Progress','Completed'].map(s=>`<option>${s}</option>`).join('')}</select></div>
       </div>
       <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Create</button></div>
@@ -1291,7 +1343,7 @@ function editJobCard(id){
     <form onsubmit="submitEditJobCard(event,'${id}')">
       <div class="form-grid">
         <div class="field"><label>Status</label><select name="status">${['Pending','In Progress','Completed','Cancelled'].map(s=>`<option ${j.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${TECH_ROSTER.map(t=>`<option ${j.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div class="field"><label>Technician</label><select name="technician"><option value="">Unassigned</option>${techNames().map(t=>`<option ${j.technician===t?'selected':''}>${t}</option>`).join('')}</select></div>
         <div class="field"><label>Parts Used</label><input name="parts" value="${esc(j.parts)}" placeholder="e.g. Power board, remote"></div>
         <div class="field"><label>Service Charge (₹)</label><input name="charge" value="${esc(j.charge)}" type="number" min="0"></div>
         <div class="field full"><label>Notes</label><textarea name="notes">${esc(j.notes)}</textarea></div>
@@ -1423,7 +1475,7 @@ function viewCustomer(id){
    TECHNICIANS
 ========================================================= */
 function renderTechnicians(){
-  const rows = TECH_ROSTER.map(t=>{
+  const rows = techNames().map(t=>{
     const active = db.calls.filter(c=>c.technician===t && c.status!=='Completed' && c.status!=='Cancelled').length;
     const completed = db.calls.filter(c=>c.technician===t && c.status==='Completed').length;
     const inwardActive = db.inward.filter(i=>i.technician===t && i.status!=='Delivered').length;
@@ -1431,7 +1483,9 @@ function renderTechnicians(){
   });
   return `
   <div class="panel">
-    <div class="panel-head"><h2>Technician Roster</h2><div class="hint">${rows.length} technicians</div></div>
+    <div class="panel-head"><h2>Technician Roster</h2><div class="hint">${rows.length} technicians</div>
+      <div class="panel-head-actions"><button class="btn btn-primary btn-sm" onclick="openAddTechnicianForm()">+ Add Technician</button></div>
+    </div>
     <div class="panel-body">
       <div class="table-wrap">
         <table>
@@ -1452,6 +1506,114 @@ function renderTechnicians(){
   </div>`;
 }
 
+function openAddTechnicianForm(){
+  openModal('Add Technician', `
+    <form onsubmit="submitAddTechnician(event)">
+      <div class="field full"><label>Technician / Partner Name <span class="req">*</span></label>
+        <input name="techName" required placeholder="e.g. Suresh Mangalore, or a partner firm name">
+      </div>
+      <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Add</button></div>
+    </form>
+  `);
+}
+function submitAddTechnician(e){
+  e.preventDefault();
+  const name = e.target.techName.value.trim();
+  if(!addTechnician(name)){ toast('That name already exists','err'); return; }
+  saveDB(); closeModal(); render(); toast(`${name} added to roster`,'ok');
+}
+
+/* =========================================================
+   MONTHLY BILLING
+========================================================= */
+let billingMonth = todayStr().slice(0,7); // YYYY-MM
+function renderBilling(){
+  const rows = db.calls.filter(c=> c.status==='Completed' && c.date && c.date.slice(0,7)===billingMonth)
+    .sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
+  const rate = db.settings.kmRate||10;
+  let totalService=0, totalTravel=0, totalKm=0;
+  rows.forEach(r=>{ totalService += (r.charge||0); totalTravel += (r.travelCharge!==undefined? r.travelCharge : (r.distanceKm||0)*rate); totalKm += (r.distanceKm||0); });
+  const grandTotal = totalService + totalTravel;
+  const billedCount = rows.filter(r=>r.billed).length;
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Monthly Billing</h2>
+      <div class="hint">${rows.length} completed calls</div>
+      <div class="panel-head-actions">
+        <input type="month" value="${billingMonth}" onchange="billingMonth=this.value;render()" style="padding:8px 10px;border:1px solid var(--line);border-radius:7px;">
+        <button class="btn btn-ghost btn-sm" onclick="exportBillingCSV()">Export CSV</button>
+        <button class="btn btn-navy btn-sm" onclick="markAllBilled()">Mark All Billed</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="filters" style="align-items:flex-end;">
+        <div class="field" style="margin:0;"><label>Rate per KM (₹)</label><input type="number" min="0" step="0.5" value="${rate}" style="width:110px;" onchange="updateKmRate(this.value)"></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="stat-grid" style="margin-bottom:18px;">
+        ${statCard('Total KM', totalKm.toFixed(1), 'var(--steel)', 'This month, all centers')}
+        ${statCard('Service Charges', '₹'+totalService.toFixed(0), 'var(--navy)', 'Sum of job charges')}
+        ${statCard('Travel Charges', '₹'+totalTravel.toFixed(0), 'var(--warn)', `At ₹${rate}/km`)}
+        ${statCard('Grand Total', '₹'+grandTotal.toFixed(0), 'var(--ok)', `${billedCount}/${rows.length} billed`)}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Call ID</th><th>Date</th><th>Customer</th><th>Technician</th><th>KM</th><th>Travel ₹</th><th>Service ₹</th><th>Total ₹</th><th>Billed</th></tr></thead>
+          <tbody>
+            ${rows.length? rows.map(r=>{
+              const travel = r.travelCharge!==undefined? r.travelCharge : (r.distanceKm||0)*rate;
+              const total = (r.charge||0) + travel;
+              return `<tr>
+                <td class="id-mono">${r.id}</td>
+                <td>${fmtDate(r.date)}</td>
+                <td>${esc(r.customerName)}</td>
+                <td>${esc(r.technician)||'—'}</td>
+                <td>${r.distanceKm||0}</td>
+                <td>₹${travel.toFixed(0)}</td>
+                <td>₹${(r.charge||0).toFixed(0)}</td>
+                <td style="font-weight:700;">₹${total.toFixed(0)}</td>
+                <td><button class="badge ${r.billed?'st-completed':'st-pending'}" style="border:none;cursor:pointer;" onclick="toggleBilled('${r.id}')">${r.billed?'Billed':'Pending'}</button></td>
+              </tr>`;
+            }).join('') : `<tr class="empty-row"><td colspan="9">No completed calls in this month yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+function updateKmRate(v){
+  db.settings.kmRate = parseFloat(v)||10;
+  db.calls.forEach(r=>{ if(r.status==='Completed') r.travelCharge = (r.distanceKm||0)*db.settings.kmRate; });
+  saveDB(); render(); toast('KM rate updated','ok');
+}
+function toggleBilled(id){
+  const r = db.calls.find(c=>c.id===id); if(!r) return;
+  r.billed = !r.billed; r.billedAt = r.billed? todayStr() : '';
+  saveDB(); render();
+}
+function markAllBilled(){
+  const rows = db.calls.filter(c=> c.status==='Completed' && c.date && c.date.slice(0,7)===billingMonth && !c.billed);
+  if(!rows.length){ toast('Nothing pending to bill','err'); return; }
+  if(!confirm(`Mark ${rows.length} call(s) as billed for ${billingMonth}?`)) return;
+  rows.forEach(r=>{ r.billed=true; r.billedAt=todayStr(); });
+  saveDB(); render(); toast(`${rows.length} call(s) marked billed`,'ok');
+}
+function exportBillingCSV(){
+  const rate = db.settings.kmRate||10;
+  const rows = db.calls.filter(c=> c.status==='Completed' && c.date && c.date.slice(0,7)===billingMonth);
+  const headers = ['Call ID','Date','Customer','Phone','Technician','Area','KM','Travel Charge','Service Charge','Total','Billed','Logged By'];
+  const data = rows.map(r=>{
+    const travel = r.travelCharge!==undefined? r.travelCharge : (r.distanceKm||0)*rate;
+    return [r.id,r.date,r.customerName,r.phone,r.technician,r.area,r.distanceKm||0,travel.toFixed(0),(r.charge||0).toFixed(0),(travel+(r.charge||0)).toFixed(0),r.billed?'Yes':'No',r.centerTag||''];
+  });
+  const csv = [headers.join(','), ...data.map(r=>r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MRL_Billing_${billingMonth}.csv`; a.click();
+  toast('Billing CSV exported','ok');
+}
+
 function emptyState(icon, title, desc){
   return `<div class="empty-state">${iconSvg(icon)}<div class="t">${title}</div><div class="d">${desc}</div></div>`;
 }
@@ -1459,7 +1621,7 @@ function emptyState(icon, title, desc){
 /* ---------- CSV EXPORT ---------- */
 function exportCSV(kind){
   let rows = [], headers = [];
-  if(kind==='calls'){ headers=['ID','Date','Type','Customer','Phone','Product','Model','Serial No.','Technician','Priority','Status','Closed On','Photos','Logged By']; rows = db.calls.map(r=>[r.id,r.date,r.type,r.customerName,r.phone,r.product,r.model,r.serial||'',r.technician,r.priority,r.status,r.closedAt||'',r.photoCount||0,r.centerTag||'']); }
+  if(kind==='calls'){ headers=['ID','Date','Type','Customer','Phone','Product','Model','Serial No.','Technician','Priority','Status','Closed On','Photos','KM','Service Charge','Travel Charge','Billed','Logged By']; rows = db.calls.map(r=>[r.id,r.date,r.type,r.customerName,r.phone,r.product,r.model,r.serial||'',r.technician,r.priority,r.status,r.closedAt||'',r.photoCount||0,r.distanceKm||0,r.charge||0,r.travelCharge||0,r.billed?'Yes':'No',r.centerTag||'']); }
   if(kind==='inward'){ headers=['ID','Date In','Customer','Phone','Model','Serial','Technician','Status','Date Out']; rows = db.inward.map(r=>[r.id,r.dateIn,r.customerName,r.phone,r.model,r.serial,r.technician,r.status,r.dateOut]); }
   if(kind==='customers'){ headers=['ID','Name','Phone','Address','Area','Brand']; rows = db.customers.map(r=>[r.id,r.name,r.phone,r.address,r.area,r.brand]); }
   const csv = [headers.join(','), ...rows.map(r=>r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
