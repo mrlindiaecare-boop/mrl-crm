@@ -573,15 +573,36 @@ function bootApp(){
 })();
 
 function findCustomerByPhone(phone){ return db.customers.find(c=>c.phone===phone); }
-function upsertCustomer({name, phone, address, area, brand}){
+function upsertCustomer({name, phone, altPhone, address, area, pincode, brand}){
   let c = findCustomerByPhone(phone);
   if(c){
-    c.name=name||c.name; c.address=address||c.address; c.area=area||c.area; c.brand=brand||c.brand;
+    c.name=name||c.name; c.altPhone=altPhone||c.altPhone; c.address=address||c.address; c.area=area||c.area; c.pincode=pincode||c.pincode; c.brand=brand||c.brand;
   } else {
-    c = {id:'CUST-'+Date.now().toString().slice(-8), name, phone, address, area, brand, createdAt: todayStr()};
+    c = {id:'CUST-'+Date.now().toString().slice(-8), name, phone, altPhone:altPhone||'', address, area, pincode:pincode||'', brand, createdAt: todayStr()};
     db.customers.push(c);
   }
   return c;
+}
+/* PIN code -> area lookup using India's public postal API (runs in the
+   browser of whoever is using the form, not on this server) */
+function lookupPincode(pin, form){
+  if(!/^[0-9]{6}$/.test(pin) || !form || !form.area) return;
+  const areaField = form.area;
+  const oldPlaceholder = areaField.placeholder;
+  areaField.placeholder = 'Looking up PIN…';
+  fetch(`https://api.postalpincode.in/pincode/${pin}`)
+    .then(res=>res.json())
+    .then(data=>{
+      if(data && data[0] && data[0].Status==='Success' && data[0].PostOffice && data[0].PostOffice.length){
+        const po = data[0].PostOffice[0];
+        areaField.value = `${po.Name}, ${po.District}`;
+        toast(`Area filled from PIN ${pin}`, 'ok');
+      } else {
+        areaField.placeholder = oldPlaceholder;
+        toast('PIN not found — enter area manually', 'err');
+      }
+    })
+    .catch(()=>{ areaField.placeholder = oldPlaceholder; toast('Could not look up PIN — check connection', 'err'); });
 }
 
 /* ---------- NAV / ROUTES ---------- */
@@ -875,7 +896,7 @@ function renderCalls(){
 }
 
 function customerDatalist(){
-  return db.customers.map(c=>`<option data-id="${c.id}" data-phone="${c.phone}" data-address="${esc(c.address)}" data-area="${c.area}" data-brand="${c.brand}" value="${esc(c.name)}"></option>`).join('');
+  return db.customers.map(c=>`<option data-id="${c.id}" data-phone="${c.phone}" data-altphone="${esc(c.altPhone)}" data-address="${esc(c.address)}" data-area="${esc(c.area)}" data-pincode="${esc(c.pincode)}" data-brand="${c.brand}" value="${esc(c.name)}"></option>`).join('');
 }
 
 function openCallForm(type){
@@ -886,12 +907,15 @@ function openCallForm(type){
           <input list="custList" name="customerName" required autocomplete="off" oninput="fillFromCustomer(this)"><datalist id="custList">${customerDatalist()}</datalist>
         </div>
         <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile"></div>
+        <div class="field"><label>Alternative Number</label><input name="altPhone" pattern="[0-9]{10}" maxlength="10" placeholder="Optional 2nd number"></div>
         <div class="field full"><label>Address</label><input name="address"></div>
-        <div class="field"><label>Area / Territory</label><select name="area">${AREAS.map(a=>`<option>${a}</option>`).join('')}</select></div>
+        <div class="field"><label>PIN Code</label><input name="pincode" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN" oninput="if(this.value.length===6) lookupPincode(this.value, this.form)"></div>
+        <div class="field"><label>Area / Territory</label><input list="areaListCall" name="area" placeholder="Auto-fills from PIN, or type"><datalist id="areaListCall">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist></div>
         <div class="field"><label>Brand</label><select name="brand">${BRANDS.map(b=>`<option>${b}</option>`).join('')}</select></div>
         <div class="field"><label>Product</label><select name="product" onchange="toggleModelList(this)"><option>TV</option><option>Speaker</option></select></div>
         <div class="field"><label>Model</label><select name="model" id="modelSelect">${TV_MODELS.map(m=>`<option>${m}</option>`).join('')}</select></div>
         <div class="field"><label>Serial No.</label><input name="serial" placeholder="e.g. MRL55Q-88213"></div>
+        <div class="field"><label>Date of Purchase</label><input type="date" name="purchaseDate" max="${todayStr()}"></div>
         <div class="field full"><label>${type==='Service'?'Issue Description':'Installation Notes'} ${type==='Service'?'<span class="req">*</span>':''}</label>
           <textarea name="issue" ${type==='Service'?'required':''} placeholder="${type==='Service'?'Describe the fault reported by customer':'e.g. New unit, wall-mount required, demo needed'}"></textarea>
         </div>
@@ -913,23 +937,26 @@ function toggleModelList(sel){
   modelSelect.innerHTML = list.map(m=>`<option>${m}</option>`).join('');
 }
 function fillFromCustomer(input){
-  const list = document.getElementById('custList');
+  const list = input.list;
+  if(!list) return;
   const opt = [...list.options].find(o=>o.value===input.value);
   if(!opt) return;
   const form = input.closest('form');
   form.phone.value = opt.dataset.phone||'';
-  form.address.value = opt.dataset.address||'';
-  if(opt.dataset.area) form.area.value = opt.dataset.area;
-  if(opt.dataset.brand) form.brand.value = opt.dataset.brand;
+  if(form.altPhone) form.altPhone.value = opt.dataset.altphone||'';
+  if(form.address) form.address.value = opt.dataset.address||'';
+  if(form.area && opt.dataset.area) form.area.value = opt.dataset.area;
+  if(form.pincode && opt.dataset.pincode) form.pincode.value = opt.dataset.pincode;
+  if(form.brand && opt.dataset.brand) form.brand.value = opt.dataset.brand;
 }
 function submitCall(e, type){
   e.preventDefault();
   const f = e.target;
-  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim(), area:f.area.value, brand:f.brand.value});
+  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), altPhone:f.altPhone.value.trim(), address:f.address.value.trim(), area:f.area.value.trim(), pincode:f.pincode.value.trim(), brand:f.brand.value});
   const call = {
     id: uid('CALL'), date: f.date.value||todayStr(), type,
-    customerId: cust.id, customerName: cust.name, phone: cust.phone, address: cust.address, area: cust.area, brand: f.brand.value,
-    product: f.product.value, model: f.model.value, serial: f.serial.value.trim(), issue: f.issue.value.trim(),
+    customerId: cust.id, customerName: cust.name, phone: cust.phone, altPhone: cust.altPhone, address: cust.address, area: cust.area, pincode: cust.pincode, brand: f.brand.value,
+    product: f.product.value, model: f.model.value, serial: f.serial.value.trim(), purchaseDate: f.purchaseDate.value||'', issue: f.issue.value.trim(),
     technician: f.technician.value, priority: f.priority.value, status: f.technician.value && f.status.value==='Pending' ? 'Assigned' : f.status.value,
     notes:'', photoCount:0, closedAt:'', centerTag:currentCenter?currentCenter.name:'',
     distanceKm:0, charge:0, billed:false, billedAt:''
@@ -950,9 +977,11 @@ function viewCall(id){
         <div><div class="k">Date</div><div class="v">${fmtDate(r.date)}</div></div>
         <div><div class="k">Customer</div><div class="v">${esc(r.customerName)}</div></div>
         <div><div class="k">Phone</div><div class="v">${esc(r.phone)}</div></div>
-        <div><div class="k">Address</div><div class="v">${esc(r.address)} ${r.area?('· '+esc(r.area)):''}</div></div>
+        <div><div class="k">Alt. Number</div><div class="v">${esc(r.altPhone)||'—'}</div></div>
+        <div><div class="k">Address</div><div class="v">${esc(r.address)} ${r.area?('· '+esc(r.area)):''} ${r.pincode?('· '+esc(r.pincode)):''}</div></div>
         <div><div class="k">Product</div><div class="v">${esc(r.product)} · ${esc(r.model)}</div></div>
         <div><div class="k">Serial No.</div><div class="v">${esc(r.serial)||'—'}</div></div>
+        <div><div class="k">Date of Purchase</div><div class="v">${r.purchaseDate?fmtDate(r.purchaseDate):'—'}</div></div>
         <div><div class="k">Technician</div><div class="v">${esc(r.technician||'Unassigned')}</div></div>
         <div><div class="k">Priority</div><div class="v">${priorityBadge(r.priority)}</div></div>
         <div><div class="k">Logged By</div><div class="v">${esc(r.centerTag)||'—'}</div></div>
@@ -1189,9 +1218,13 @@ function openInwardForm(){
           <input list="custList2" name="customerName" required autocomplete="off" oninput="fillFromCustomer(this)"><datalist id="custList2">${customerDatalist()}</datalist>
         </div>
         <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10"></div>
+        <div class="field"><label>Alternative Number</label><input name="altPhone" pattern="[0-9]{10}" maxlength="10" placeholder="Optional 2nd number"></div>
         <div class="field full"><label>Address</label><input name="address"></div>
+        <div class="field"><label>PIN Code</label><input name="pincode" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN" oninput="if(this.value.length===6) lookupPincode(this.value, this.form)"></div>
+        <div class="field"><label>Area / Territory</label><input list="areaListInward" name="area" placeholder="Auto-fills from PIN, or type"><datalist id="areaListInward">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist></div>
         <div class="field"><label>Model</label><select name="model">${TV_MODELS.map(m=>`<option>${m}</option>`).join('')}</select></div>
         <div class="field"><label>Serial / IMEI No.</label><input name="serial" placeholder="e.g. MRL55Q-88213"></div>
+        <div class="field"><label>Date of Purchase</label><input type="date" name="purchaseDate" max="${todayStr()}"></div>
         <div class="field full"><label>Issue Reported</label><textarea name="issue" placeholder="Fault description"></textarea></div>
         <div class="field full"><label>Condition on Inward</label><input name="conditionIn" placeholder="e.g. Screen cracked top-left, remote not included"></div>
         <div class="field"><label>Assign Technician</label><select name="technician"><option value="">Unassigned</option>${techNames().map(t=>`<option>${t}</option>`).join('')}</select></div>
@@ -1207,10 +1240,10 @@ function openInwardForm(){
 function submitInward(e){
   e.preventDefault();
   const f = e.target;
-  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim()});
+  const cust = upsertCustomer({name:f.customerName.value.trim(), phone:f.phone.value.trim(), altPhone:f.altPhone.value.trim(), address:f.address.value.trim(), area:f.area.value.trim(), pincode:f.pincode.value.trim()});
   const rec = {
-    id: uid('INW'), dateIn: f.dateIn.value||todayStr(), customerId:cust.id, customerName:cust.name, phone:cust.phone,
-    product:'TV', model:f.model.value, serial:f.serial.value.trim(), issue:f.issue.value.trim(), conditionIn:f.conditionIn.value.trim(),
+    id: uid('INW'), dateIn: f.dateIn.value||todayStr(), customerId:cust.id, customerName:cust.name, phone:cust.phone, altPhone:cust.altPhone, area:cust.area, pincode:cust.pincode,
+    product:'TV', model:f.model.value, serial:f.serial.value.trim(), purchaseDate:f.purchaseDate.value||'', issue:f.issue.value.trim(), conditionIn:f.conditionIn.value.trim(),
     technician:f.technician.value, status: f.technician.value?'In Progress':'Pending', dateOut:'', conditionOut:'', deliveredBy:'', notes:''
   };
   db.inward.push(rec); saveDB(); closeModal(); render();
@@ -1228,8 +1261,11 @@ function viewInward(id){
       <div class="ticket-grid">
         <div><div class="k">Customer</div><div class="v">${esc(r.customerName)}</div></div>
         <div><div class="k">Phone</div><div class="v">${esc(r.phone)}</div></div>
+        <div><div class="k">Alt. Number</div><div class="v">${esc(r.altPhone)||'—'}</div></div>
+        <div><div class="k">Area</div><div class="v">${esc(r.area)||'—'} ${r.pincode?('· '+esc(r.pincode)):''}</div></div>
         <div><div class="k">Model</div><div class="v">${esc(r.model)}</div></div>
         <div><div class="k">Serial No.</div><div class="v">${esc(r.serial)||'—'}</div></div>
+        <div><div class="k">Date of Purchase</div><div class="v">${r.purchaseDate?fmtDate(r.purchaseDate):'—'}</div></div>
         <div><div class="k">Date In</div><div class="v">${fmtDate(r.dateIn)}</div></div>
         <div><div class="k">Technician</div><div class="v">${esc(r.technician)||'Unassigned'}</div></div>
         <div><div class="k">Date Out</div><div class="v">${r.dateOut?fmtDate(r.dateOut):'—'}</div></div>
@@ -1409,7 +1445,7 @@ function renderCustomers(){
     <div class="panel-body">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Area</th><th>Brand</th><th>Calls</th><th>Inward</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Alt Phone</th><th>Area</th><th>Brand</th><th>Calls</th><th>Inward</th><th></th></tr></thead>
           <tbody>
           ${rows.length? rows.map(c=>{
             const callCount = db.calls.filter(x=>x.customerId===c.id).length;
@@ -1418,13 +1454,14 @@ function renderCustomers(){
               <td class="id-mono">${c.id}</td>
               <td>${esc(c.name)}</td>
               <td class="muted">${esc(c.phone)}</td>
+              <td class="muted">${esc(c.altPhone)||'—'}</td>
               <td>${esc(c.area)||'—'}</td>
               <td>${esc(c.brand)||'—'}</td>
               <td>${callCount}</td>
               <td>${inwardCount}</td>
               <td><button class="icon-btn" onclick="viewCustomer('${c.id}')">${iconSvg('user')}</button></td>
             </tr>`;
-          }).join('') : `<tr class="empty-row"><td colspan="8">No customers yet.</td></tr>`}
+          }).join('') : `<tr class="empty-row"><td colspan="9">No customers yet.</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -1437,8 +1474,10 @@ function openCustomerForm(){
       <div class="form-grid">
         <div class="field"><label>Name <span class="req">*</span></label><input name="name" required></div>
         <div class="field"><label>Phone <span class="req">*</span></label><input name="phone" required pattern="[0-9]{10}" maxlength="10"></div>
+        <div class="field"><label>Alternative Number</label><input name="altPhone" pattern="[0-9]{10}" maxlength="10" placeholder="Optional 2nd number"></div>
         <div class="field full"><label>Address</label><input name="address"></div>
-        <div class="field"><label>Area</label><select name="area">${AREAS.map(a=>`<option>${a}</option>`).join('')}</select></div>
+        <div class="field"><label>PIN Code</label><input name="pincode" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN" oninput="if(this.value.length===6) lookupPincode(this.value, this.form)"></div>
+        <div class="field"><label>Area</label><input list="areaListCust" name="area" placeholder="Auto-fills from PIN, or type"><datalist id="areaListCust">${AREAS.map(a=>`<option value="${a}">`).join('')}</datalist></div>
         <div class="field"><label>Brand</label><select name="brand">${BRANDS.map(b=>`<option>${b}</option>`).join('')}</select></div>
       </div>
       <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" type="submit">Save Customer</button></div>
@@ -1447,7 +1486,7 @@ function openCustomerForm(){
 }
 function submitCustomer(e){
   e.preventDefault(); const f=e.target;
-  upsertCustomer({name:f.name.value.trim(), phone:f.phone.value.trim(), address:f.address.value.trim(), area:f.area.value, brand:f.brand.value});
+  upsertCustomer({name:f.name.value.trim(), phone:f.phone.value.trim(), altPhone:f.altPhone.value.trim(), address:f.address.value.trim(), area:f.area.value.trim(), pincode:f.pincode.value.trim(), brand:f.brand.value});
   saveDB(); closeModal(); render(); toast('Customer saved','ok');
 }
 function viewCustomer(id){
@@ -1457,7 +1496,8 @@ function viewCustomer(id){
   openModal(esc(c.name), `
     <div class="ticket-grid" style="margin-bottom:14px;">
       <div><div class="k">Phone</div><div class="v">${esc(c.phone)}</div></div>
-      <div><div class="k">Area</div><div class="v">${esc(c.area)||'—'}</div></div>
+      <div><div class="k">Alt. Number</div><div class="v">${esc(c.altPhone)||'—'}</div></div>
+      <div><div class="k">Area</div><div class="v">${esc(c.area)||'—'} ${c.pincode?('· '+esc(c.pincode)):''}</div></div>
       <div><div class="k">Address</div><div class="v">${esc(c.address)||'—'}</div></div>
       <div><div class="k">Brand</div><div class="v">${esc(c.brand)||'—'}</div></div>
     </div>
@@ -1621,9 +1661,9 @@ function emptyState(icon, title, desc){
 /* ---------- CSV EXPORT ---------- */
 function exportCSV(kind){
   let rows = [], headers = [];
-  if(kind==='calls'){ headers=['ID','Date','Type','Customer','Phone','Product','Model','Serial No.','Technician','Priority','Status','Closed On','Photos','KM','Service Charge','Travel Charge','Billed','Logged By']; rows = db.calls.map(r=>[r.id,r.date,r.type,r.customerName,r.phone,r.product,r.model,r.serial||'',r.technician,r.priority,r.status,r.closedAt||'',r.photoCount||0,r.distanceKm||0,r.charge||0,r.travelCharge||0,r.billed?'Yes':'No',r.centerTag||'']); }
-  if(kind==='inward'){ headers=['ID','Date In','Customer','Phone','Model','Serial','Technician','Status','Date Out']; rows = db.inward.map(r=>[r.id,r.dateIn,r.customerName,r.phone,r.model,r.serial,r.technician,r.status,r.dateOut]); }
-  if(kind==='customers'){ headers=['ID','Name','Phone','Address','Area','Brand']; rows = db.customers.map(r=>[r.id,r.name,r.phone,r.address,r.area,r.brand]); }
+  if(kind==='calls'){ headers=['ID','Date','Type','Customer','Phone','Alt Phone','Product','Model','Serial No.','Purchase Date','Technician','Priority','Status','Closed On','Photos','Area','Pincode','KM','Service Charge','Travel Charge','Billed','Logged By']; rows = db.calls.map(r=>[r.id,r.date,r.type,r.customerName,r.phone,r.altPhone||'',r.product,r.model,r.serial||'',r.purchaseDate||'',r.technician,r.priority,r.status,r.closedAt||'',r.photoCount||0,r.area||'',r.pincode||'',r.distanceKm||0,r.charge||0,r.travelCharge||0,r.billed?'Yes':'No',r.centerTag||'']); }
+  if(kind==='inward'){ headers=['ID','Date In','Customer','Phone','Alt Phone','Area','Pincode','Model','Serial','Purchase Date','Technician','Status','Date Out']; rows = db.inward.map(r=>[r.id,r.dateIn,r.customerName,r.phone,r.altPhone||'',r.area||'',r.pincode||'',r.model,r.serial,r.purchaseDate||'',r.technician,r.status,r.dateOut]); }
+  if(kind==='customers'){ headers=['ID','Name','Phone','Alt Phone','Address','Area','Pincode','Brand']; rows = db.customers.map(r=>[r.id,r.name,r.phone,r.altPhone||'',r.address,r.area,r.pincode||'',r.brand]); }
   const csv = [headers.join(','), ...rows.map(r=>r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MRL_${kind}_${todayStr()}.csv`; a.click();
